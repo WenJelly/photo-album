@@ -1,0 +1,125 @@
+syntax = "v1"
+
+info (
+	title:   "Picture API"
+	desc:    "Picture upload and retrieval service"
+	author:  "Developer"
+	version: "v1.0"
+)
+
+type (
+	PictureIDQueryRequest {
+		Id int64 `form:"id"`
+	}
+
+	PictureGetRequest {
+		Id int64 `path:"id"`
+	}
+
+	PictureUploadByUrlRequest {
+		Id           int64    `json:"id,optional"`
+		FileUrl      string   `json:"fileUrl"`
+		PicName      string   `json:"picName,optional"`
+		Introduction string   `json:"introduction,optional"`
+		Category     string   `json:"category,optional"`
+		Tags         []string `json:"tags,optional"`
+	}
+
+	PictureListRequest {
+		PageNum       int64    `json:"pageNum,optional"`
+		PageSize      int64    `json:"pageSize,optional"`
+		Id            int64    `json:"id,optional"`
+		Name          string   `json:"name,optional"`
+		Introduction  string   `json:"introduction,optional"`
+		Category      string   `json:"category,optional"`
+		Tags          []string `json:"tags,optional"`
+		PicSize       int64    `json:"picSize,optional"`
+		PicWidth      int64    `json:"picWidth,optional"`
+		PicHeight     int64    `json:"picHeight,optional"`
+		PicScale      float64  `json:"picScale,optional"`
+		PicFormat     string   `json:"picFormat,optional"`
+		UserId        int64    `json:"userId,optional"`
+		ReviewStatus  int64    `json:"reviewStatus,optional"`
+		ReviewMessage string   `json:"reviewMessage,optional"`
+		ReviewerId    int64    `json:"reviewerId,optional"`
+		EditTimeStart string   `json:"editTimeStart,optional"`
+		EditTimeEnd   string   `json:"editTimeEnd,optional"`
+		SearchText    string   `json:"searchText,optional"`
+	}
+
+	UserSummary {
+		Id          int64  `json:"id"`
+		UserName    string `json:"userName"`
+		UserAvatar  string `json:"userAvatar"`
+		UserProfile string `json:"userProfile"`
+		UserRole    string `json:"userRole"`
+	}
+
+	PictureResponse {
+		Id            int64       `json:"id"`
+		Url           string      `json:"url"`
+		Name          string      `json:"name"`
+		Introduction  string      `json:"introduction,optional"`
+		Category      string      `json:"category,optional"`
+		Tags          []string    `json:"tags,optional"`
+		PicSize       int64       `json:"picSize,optional"`
+		PicWidth      int64       `json:"picWidth,optional"`
+		PicHeight     int64       `json:"picHeight,optional"`
+		PicScale      float64     `json:"picScale,optional"`
+		PicFormat     string      `json:"picFormat,optional"`
+		UserId        int64       `json:"userId"`
+		User          UserSummary `json:"user,optional"`
+		CreateTime    string      `json:"createTime"`
+		EditTime      string      `json:"editTime"`
+		UpdateTime    string      `json:"updateTime"`
+		ReviewStatus  int64       `json:"reviewStatus"`
+		ReviewMessage string      `json:"reviewMessage,optional"`
+		ReviewerId    int64       `json:"reviewerId,optional"`
+		ReviewTime    string      `json:"reviewTime,optional"`
+		ThumbnailUrl  string      `json:"thumbnailUrl,optional"`
+		PicColor      string      `json:"picColor,optional"`
+		ViewCount     int64       `json:"viewCount"`
+		LikeCount     int64       `json:"likeCount"`
+	}
+
+	PicturePageResponse {
+		PageNum  int64             `json:"pageNum"`
+		PageSize int64             `json:"pageSize"`
+		Total    int64             `json:"total"`
+		List     []PictureResponse `json:"list"`
+	}
+
+	PictureCarouselResponse {
+		List []PictureResponse `json:"list"`
+	}
+)
+
+@server (
+	prefix: /api
+	group:  picture
+)
+service PictureCenter {
+	@handler UploadPicture
+	post /picture/upload returns (PictureResponse)
+
+	@handler UploadPictureByUrl
+	post /picture/upload/url (PictureUploadByUrlRequest) returns (PictureResponse)
+
+	@handler GetPicture
+	get /picture/:id (PictureGetRequest) returns (PictureResponse)
+
+	@handler GetPictureVO
+	get /picture/get/vo (PictureIDQueryRequest) returns (PictureResponse)
+
+	@handler GetPictureAdmin
+	get /picture/get (PictureIDQueryRequest) returns (PictureResponse)
+
+	@handler ListPictureVO
+	post /picture/list/page/vo (PictureListRequest) returns (PicturePageResponse)
+
+	@handler ListPicture
+	post /picture/list/page (PictureListRequest) returns (PicturePageResponse)
+
+	@handler HomeCarousel
+	get /picture/home/carousel returns (PictureCarouselResponse)
+}

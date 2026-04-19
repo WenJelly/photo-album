@@ -1,0 +1,180 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "User API",
+    "description": "用户系统接口服务",
+    "version": "v1.0"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/user/login": {
+      "post": {
+        "summary": "用户登录接口",
+        "operationId": "LoginUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/user/register": {
+      "post": {
+        "summary": "用户注册接口",
+        "operationId": "RegisterUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/RegisterResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegisterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "userEmail": {
+          "type": "string"
+        },
+        "userPassword": {
+          "type": "string"
+        }
+      },
+      "title": "LoginRequest",
+      "required": [
+        "userEmail",
+        "userPassword"
+      ]
+    },
+    "LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "userAccount": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userAvatar": {
+          "type": "string"
+        },
+        "userProfile": {
+          "type": "string"
+        },
+        "userRole": {
+          "type": "string"
+        },
+        "createTime": {
+          "type": "string",
+          "description": " 修复：在接口层使用 string 或 int64"
+        },
+        "updateTime": {
+          "type": "string",
+          "description": " 修复：在接口层使用 string 或 int64"
+        }
+      },
+      "title": "LoginResponse",
+      "required": [
+        "token",
+        "id",
+        "userAccount",
+        "userName",
+        "userAvatar",
+        "userProfile",
+        "userRole",
+        "createTime",
+        "updateTime"
+      ]
+    },
+    "RegisterRequest": {
+      "type": "object",
+      "properties": {
+        "userEmail": {
+          "type": "string"
+        },
+        "userPassword": {
+          "type": "string"
+        },
+        "userCheckPassword": {
+          "type": "string"
+        }
+      },
+      "title": "RegisterRequest",
+      "required": [
+        "userEmail",
+        "userPassword",
+        "userCheckPassword"
+      ]
+    },
+    "RegisterResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "title": "RegisterResponse",
+      "required": [
+        "id"
+      ]
+    }
+  },
+  "securityDefinitions": {
+    "apiKey": {
+      "type": "apiKey",
+      "description": "Enter JWT Bearer token **_only_**",
+      "name": "Authorization",
+      "in": "header"
+    }
+  }
+}

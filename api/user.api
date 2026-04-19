@@ -1,0 +1,49 @@
+syntax = "v1"
+
+info (
+	title:   "User API"
+	desc:    "用户系统接口服务"
+	author:  "Developer"
+	version: "v1.0"
+)
+
+type (
+	LoginRequest {
+		UserEmail    string `json:"userEmail" validate:"required"`
+		UserPassword string `json:"userPassword" validate:"required"`
+	}
+	RegisterRequest {
+		UserEmail         string `json:"userEmail" validate:"required"`
+		UserPassword      string `json:"userPassword" validate:"required"`
+		UserCheckPassword string `json:"userCheckPassword" validate:"required"`
+	}
+	LoginResponse {
+		Token       string `json:"token"`
+		Id          int64  `json:"id"`
+		UserAccount string `json:"userAccount"`
+		UserName    string `json:"userName"`
+		UserAvatar  string `json:"userAvatar"`
+		UserProfile string `json:"userProfile"`
+		UserRole    string `json:"userRole"`
+		CreateTime  string `json:"createTime"` // 修复：在接口层使用 string 或 int64
+		UpdateTime  string `json:"updateTime"` // 修复：在接口层使用 string 或 int64
+	}
+	RegisterResponse {
+		Id int64 `json:"id"`
+	}
+)
+
+@server (
+	prefix: /api
+	group:  user
+)
+service UserCenter {
+	@doc "用户登录接口"
+	@handler LoginUser
+	post /user/login (LoginRequest) returns (LoginResponse)
+
+	@doc "用户注册接口"
+	@handler RegisterUser
+	post /user/register (RegisterRequest) returns (RegisterResponse)
+}
+
