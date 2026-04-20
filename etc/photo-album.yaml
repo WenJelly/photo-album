@@ -1,12 +1,13 @@
-Name: UserCenter
+Name: PhotoAlbum
 Host: localhost
 Port: 8888
 
 Mysql:
-  DataSource: root:root@tcp(localhost:3306)/photo_album?charset=utf8mb4&parseTime=true
+  DataSource: root:a@tcp(localhost:3306)/photo_album?charset=utf8mb4&parseTime=true
 
 CacheRedis:
   - Host: localhost:6379
+    Pass: root
 
 Auth:
   AccessSecret: "this-is-wen-jelly-jwt"

@@ -14,12 +14,20 @@ import (
 var _ PicturesModel = (*customPicturesModel)(nil)
 
 type (
+	PictureStats struct {
+		Total         int64 `db:"total"`
+		ApprovedCount int64 `db:"approvedCount"`
+		PendingCount  int64 `db:"pendingCount"`
+		RejectedCount int64 `db:"rejectedCount"`
+	}
+
 	PicturesModel interface {
 		picturesModel
 		FindOneActive(ctx context.Context, id int64) (*Pictures, error)
 		IncrementViewCount(ctx context.Context, id int64) error
 		CountByWhere(ctx context.Context, whereSQL string, args ...any) (int64, error)
 		FindByWhere(ctx context.Context, whereSQL, orderSQL string, limit, offset int64, args ...any) ([]*Pictures, error)
+		CountStatsByUser(ctx context.Context, userID int64) (*PictureStats, error)
 	}
 
 	customPicturesModel struct {
@@ -91,4 +99,28 @@ func (m *customPicturesModel) FindByWhere(ctx context.Context, whereSQL, orderSQ
 	}
 
 	return resp, nil
+}
+
+func (m *customPicturesModel) CountStatsByUser(ctx context.Context, userID int64) (*PictureStats, error) {
+	if userID <= 0 {
+		return &PictureStats{}, nil
+	}
+
+	var resp PictureStats
+	query := fmt.Sprintf(`select
+		count(1) as total,
+		coalesce(sum(case when reviewStatus = 1 then 1 else 0 end), 0) as approvedCount,
+		coalesce(sum(case when reviewStatus = 0 then 1 else 0 end), 0) as pendingCount,
+		coalesce(sum(case when reviewStatus = 2 then 1 else 0 end), 0) as rejectedCount
+	from %s
+	where isDelete = 0 and userId = ?`, m.table)
+
+	if err := m.QueryRowNoCacheCtx(ctx, &resp, query, userID); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return &PictureStats{}, nil
+		}
+		return nil, err
+	}
+
+	return &resp, nil
 }

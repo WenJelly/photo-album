@@ -60,7 +60,7 @@ func buildPictureListWhere(req *types.PictureListRequest, publicOnly bool) (stri
 
 	if req.Id > 0 {
 		whereSQL += " and `id` = ?"
-		args = append(args, req.Id)
+		args = append(args, req.Id.Int64())
 	}
 	if name := strings.TrimSpace(req.Name); name != "" {
 		whereSQL += " and `name` like ?"
@@ -100,7 +100,7 @@ func buildPictureListWhere(req *types.PictureListRequest, publicOnly bool) (stri
 	}
 	if req.UserId > 0 {
 		whereSQL += " and `userId` = ?"
-		args = append(args, req.UserId)
+		args = append(args, req.UserId.Int64())
 	}
 	if !publicOnly && req.ReviewStatus != nil {
 		whereSQL += " and `reviewStatus` = ?"
@@ -113,7 +113,7 @@ func buildPictureListWhere(req *types.PictureListRequest, publicOnly bool) (stri
 		}
 		if req.ReviewerId > 0 {
 			whereSQL += " and `reviewerId` = ?"
-			args = append(args, req.ReviewerId)
+			args = append(args, req.ReviewerId.Int64())
 		}
 	}
 	if searchText := strings.TrimSpace(req.SearchText); searchText != "" {
@@ -188,6 +188,14 @@ func canViewPictureDetail(reviewStatus, ownerUserID int64, loginUser *model.User
 	if loginUser == nil {
 		return false
 	}
+	return loginUser.Id == ownerUserID || loginUser.UserRole == "admin"
+}
+
+func canManagePicture(ownerUserID int64, loginUser *model.User) bool {
+	if loginUser == nil {
+		return false
+	}
+
 	return loginUser.Id == ownerUserID || loginUser.UserRole == "admin"
 }
 

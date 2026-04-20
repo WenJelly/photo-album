@@ -19,7 +19,7 @@ func buildPictureResponseWithUser(pictureInfo *model.Pictures, userSummary *type
 	}
 
 	return &types.PictureResponse{
-		Id:            pictureInfo.Id,
+		Id:            types.NewSnowflakeID(pictureInfo.Id),
 		Url:           pictureInfo.Url,
 		Name:          pictureInfo.Name,
 		Introduction:  nullStringValue(pictureInfo.Introduction),
@@ -30,14 +30,14 @@ func buildPictureResponseWithUser(pictureInfo *model.Pictures, userSummary *type
 		PicHeight:     nullInt64Value(pictureInfo.PicHeight),
 		PicScale:      nullFloat64Value(pictureInfo.PicScale),
 		PicFormat:     nullStringValue(pictureInfo.PicFormat),
-		UserId:        pictureInfo.UserId,
+		UserId:        types.NewSnowflakeID(pictureInfo.UserId),
 		User:          userSummary,
 		CreateTime:    pictureInfo.CreateTime.Format("2006-01-02 15:04:05"),
 		EditTime:      pictureInfo.EditTime.Format("2006-01-02 15:04:05"),
 		UpdateTime:    pictureInfo.UpdateTime.Format("2006-01-02 15:04:05"),
 		ReviewStatus:  pictureInfo.ReviewStatus,
 		ReviewMessage: nullStringValue(pictureInfo.ReviewMessage),
-		ReviewerId:    nullInt64Value(pictureInfo.ReviewerId),
+		ReviewerId:    types.NewSnowflakeID(nullInt64Value(pictureInfo.ReviewerId)),
 		ReviewTime:    nullTimeValue(pictureInfo.ReviewTime),
 		ThumbnailUrl:  nullStringValue(pictureInfo.ThumbnailUrl),
 		PicColor:      nullStringValue(pictureInfo.PicColor),
@@ -52,7 +52,7 @@ func buildUserSummary(user *model.User) *types.UserSummary {
 	}
 
 	return &types.UserSummary{
-		Id:          user.Id,
+		Id:          types.NewSnowflakeID(user.Id),
 		UserName:    user.UserName,
 		UserAvatar:  user.UserAvatar,
 		UserProfile: user.UserProfile,

@@ -9,15 +9,15 @@ info (
 
 type (
 	PictureIDQueryRequest {
-		Id int64 `form:"id"`
+		Id string `form:"id"`
 	}
 
 	PictureGetRequest {
-		Id int64 `path:"id"`
+		Id string `path:"id"`
 	}
 
 	PictureUploadByUrlRequest {
-		Id           int64    `json:"id,optional"`
+		Id           string   `json:"id,optional"`
 		FileUrl      string   `json:"fileUrl"`
 		PicName      string   `json:"picName,optional"`
 		Introduction string   `json:"introduction,optional"`
@@ -25,10 +25,20 @@ type (
 		Tags         []string `json:"tags,optional"`
 	}
 
+	PictureReviewRequest {
+		Id            string `json:"id"`
+		ReviewStatus  int64  `json:"reviewStatus"`
+		ReviewMessage string `json:"reviewMessage,optional"`
+	}
+
+	PictureDeleteRequest {
+		Id string `json:"id"`
+	}
+
 	PictureListRequest {
 		PageNum       int64    `json:"pageNum,optional"`
 		PageSize      int64    `json:"pageSize,optional"`
-		Id            int64    `json:"id,optional"`
+		Id            string   `json:"id,optional"`
 		Name          string   `json:"name,optional"`
 		Introduction  string   `json:"introduction,optional"`
 		Category      string   `json:"category,optional"`
@@ -38,17 +48,17 @@ type (
 		PicHeight     int64    `json:"picHeight,optional"`
 		PicScale      float64  `json:"picScale,optional"`
 		PicFormat     string   `json:"picFormat,optional"`
-		UserId        int64    `json:"userId,optional"`
+		UserId        string   `json:"userId,optional"`
 		ReviewStatus  int64    `json:"reviewStatus,optional"`
 		ReviewMessage string   `json:"reviewMessage,optional"`
-		ReviewerId    int64    `json:"reviewerId,optional"`
+		ReviewerId    string   `json:"reviewerId,optional"`
 		EditTimeStart string   `json:"editTimeStart,optional"`
 		EditTimeEnd   string   `json:"editTimeEnd,optional"`
 		SearchText    string   `json:"searchText,optional"`
 	}
 
 	UserSummary {
-		Id          int64  `json:"id"`
+		Id          string `json:"id"`
 		UserName    string `json:"userName"`
 		UserAvatar  string `json:"userAvatar"`
 		UserProfile string `json:"userProfile"`
@@ -56,7 +66,7 @@ type (
 	}
 
 	PictureResponse {
-		Id            int64       `json:"id"`
+		Id            string      `json:"id"`
 		Url           string      `json:"url"`
 		Name          string      `json:"name"`
 		Introduction  string      `json:"introduction,optional"`
@@ -67,14 +77,14 @@ type (
 		PicHeight     int64       `json:"picHeight,optional"`
 		PicScale      float64     `json:"picScale,optional"`
 		PicFormat     string      `json:"picFormat,optional"`
-		UserId        int64       `json:"userId"`
+		UserId        string      `json:"userId"`
 		User          UserSummary `json:"user,optional"`
 		CreateTime    string      `json:"createTime"`
 		EditTime      string      `json:"editTime"`
 		UpdateTime    string      `json:"updateTime"`
 		ReviewStatus  int64       `json:"reviewStatus"`
 		ReviewMessage string      `json:"reviewMessage,optional"`
-		ReviewerId    int64       `json:"reviewerId,optional"`
+		ReviewerId    string      `json:"reviewerId,optional"`
 		ReviewTime    string      `json:"reviewTime,optional"`
 		ThumbnailUrl  string      `json:"thumbnailUrl,optional"`
 		PicColor      string      `json:"picColor,optional"`
@@ -91,6 +101,10 @@ type (
 
 	PictureCarouselResponse {
 		List []PictureResponse `json:"list"`
+	}
+
+	PictureDeleteResponse {
+		Id string `json:"id"`
 	}
 )
 
@@ -114,8 +128,17 @@ service PictureCenter {
 	@handler GetPictureAdmin
 	get /picture/get (PictureIDQueryRequest) returns (PictureResponse)
 
+	@handler ReviewPicture
+	post /picture/review (PictureReviewRequest) returns (PictureResponse)
+
+	@handler DeletePicture
+	post /picture/delete (PictureDeleteRequest) returns (PictureDeleteResponse)
+
 	@handler ListPictureVO
 	post /picture/list/page/vo (PictureListRequest) returns (PicturePageResponse)
+
+	@handler ListMyPicture
+	post /picture/my/list/page (PictureListRequest) returns (PicturePageResponse)
 
 	@handler ListPicture
 	post /picture/list/page (PictureListRequest) returns (PicturePageResponse)

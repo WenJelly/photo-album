@@ -18,6 +18,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				Method:  http.MethodPost,
+				Path:    "/picture/delete",
+				Handler: picture.DeletePictureHandler(serverCtx),
+			},
+			{
 				Method:  http.MethodGet,
 				Path:    "/picture/get/vo",
 				Handler: picture.GetPictureVOHandler(serverCtx),
@@ -28,6 +33,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: picture.GetPictureAdminHandler(serverCtx),
 			},
 			{
+				Method:  http.MethodPost,
+				Path:    "/picture/review",
+				Handler: picture.ReviewPictureHandler(serverCtx),
+			},
+			{
 				Method:  http.MethodGet,
 				Path:    "/picture/home/carousel",
 				Handler: picture.HomeCarouselHandler(serverCtx),
@@ -36,6 +46,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodPost,
 				Path:    "/picture/list/page/vo",
 				Handler: picture.ListPictureVOHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/picture/my/list/page",
+				Handler: picture.ListMyPictureHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -51,6 +66,26 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/picture/:id",
 				Handler: picture.GetPictureHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/user/get/vo",
+				Handler: user.GetUserVOHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/user/my",
+				Handler: user.GetMyUserHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/user/my",
+				Handler: user.UpdateMyUserHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/user/my",
+				Handler: user.UpdateMyUserHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,

@@ -10,6 +10,7 @@ import (
 	"photo-album/internal/svc"
 	"photo-album/internal/types"
 	"photo-album/model"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -40,6 +41,9 @@ func (l *LoginUserLogic) LoginUser(req *types.LoginRequest) (resp *types.LoginRe
 
 		return nil, commonresponse.InternalServerError("数据库查询异常")
 	}
+	if userInfo.IsDelete != 0 {
+		return nil, commonresponse.NotFound("账号不存在")
+	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(userInfo.UserPassword), []byte(req.UserPassword)); err != nil {
 		return nil, commonresponse.Unauthorized("密码错误")
@@ -54,7 +58,7 @@ func (l *LoginUserLogic) LoginUser(req *types.LoginRequest) (resp *types.LoginRe
 
 	return &types.LoginResponse{
 		Token:       jwtToken,
-		Id:          userInfo.Id,
+		Id:          types.NewSnowflakeID(userInfo.Id),
 		UserAccount: userInfo.UserEmail,
 		UserName:    userInfo.UserName,
 		UserAvatar:  userInfo.UserAvatar,
@@ -69,7 +73,7 @@ func (l *LoginUserLogic) getJwtToken(secretKey string, iat, seconds, userID int6
 	claims := make(jwt.MapClaims)
 	claims["exp"] = iat + seconds
 	claims["iat"] = iat
-	claims["userId"] = userID
+	claims["userId"] = strconv.FormatInt(userID, 10)
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	token.Claims = claims

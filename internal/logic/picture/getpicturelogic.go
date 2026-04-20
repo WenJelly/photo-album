@@ -27,7 +27,7 @@ func NewGetPictureLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPic
 }
 
 func (l *GetPictureLogic) GetPicture(req *types.PictureGetRequest, authorization string) (*types.PictureResponse, error) {
-	return l.GetPictureVOByID(req.Id, authorization)
+	return l.GetPictureVOByID(req.Id.Int64(), authorization)
 }
 
 func (l *GetPictureLogic) GetPictureVOByID(id int64, authorization string) (*types.PictureResponse, error) {

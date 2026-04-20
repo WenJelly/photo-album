@@ -28,6 +28,23 @@ func (l *ListPictureLogic) ListPictureVO(req *types.PictureListRequest) (*types.
 	return l.listPictures(req, "", true, true)
 }
 
+func (l *ListPictureLogic) ListMyPictures(req *types.PictureListRequest, authorization string) (*types.PicturePageResponse, error) {
+	loginUser, err := loadRequiredLoginUser(l.ctx, l.svcCtx, authorization)
+	if err != nil {
+		return nil, err
+	}
+
+	if req == nil {
+		req = &types.PictureListRequest{}
+	} else {
+		cloned := *req
+		req = &cloned
+	}
+	req.UserId = types.NewSnowflakeID(loginUser.Id)
+
+	return l.listPictures(req, "", false, true)
+}
+
 func (l *ListPictureLogic) ListPictureRaw(req *types.PictureListRequest, authorization string) (*types.PicturePageResponse, error) {
 	if _, err := loadRequiredAdmin(l.ctx, l.svcCtx, authorization); err != nil {
 		return nil, err
@@ -37,6 +54,10 @@ func (l *ListPictureLogic) ListPictureRaw(req *types.PictureListRequest, authori
 }
 
 func (l *ListPictureLogic) listPictures(req *types.PictureListRequest, _ string, publicOnly bool, withUser bool) (*types.PicturePageResponse, error) {
+	if req == nil {
+		req = &types.PictureListRequest{}
+	}
+
 	pageNum, pageSize, err := normalizePicturePage(req.PageNum, req.PageSize)
 	if err != nil {
 		return nil, err

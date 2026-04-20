@@ -66,6 +66,6 @@ func (l *RegisterUserLogic) RegisterUser(req *types.RegisterRequest) (resp *type
 
 	newUserID, _ := res.LastInsertId()
 	return &types.RegisterResponse{
-		Id: newUserID,
+		Id: types.NewSnowflakeID(newUserID),
 	}, nil
 }

@@ -10,7 +10,7 @@ import (
 	"photo-album/internal/types"
 )
 
-func ListPictureVOHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func ListMyPictureHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.PictureListRequest
 		if err := commonrequest.ParseJSON(r, &req); err != nil {
@@ -19,7 +19,7 @@ func ListPictureVOHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logicpicture.NewListPictureLogic(r.Context(), svcCtx)
-		resp, err := l.ListPictureVO(&req)
+		resp, err := l.ListMyPictures(&req, r.Header.Get("Authorization"))
 		response.Response(w, resp, err)
 	}
 }

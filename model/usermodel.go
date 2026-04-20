@@ -17,6 +17,7 @@ type (
 	// and implement the added methods in customUserModel.
 	UserModel interface {
 		userModel
+		FindOneActive(ctx context.Context, id int64) (*User, error)
 		FindByIDs(ctx context.Context, ids []int64) ([]*User, error)
 	}
 
@@ -30,6 +31,19 @@ func NewUserModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) Us
 	return &customUserModel{
 		defaultUserModel: newUserModel(conn, c, opts...),
 	}
+}
+
+func (m *customUserModel) FindOneActive(ctx context.Context, id int64) (*User, error) {
+	var resp User
+	query := fmt.Sprintf("select %s from %s where `id` = ? and `isDelete` = 0 limit 1", userRows, m.table)
+	if err := m.QueryRowNoCacheCtx(ctx, &resp, query, id); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &resp, nil
 }
 
 func (m *customUserModel) FindByIDs(ctx context.Context, ids []int64) ([]*User, error) {

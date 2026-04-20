@@ -42,7 +42,7 @@ func (l *UploadPictureByUrlLogic) UploadPictureByUrl(req *types.PictureUploadByU
 	defer cleanup()
 
 	return storePicture(l.ctx, l.svcCtx, tempPath, originalFilename, pictureWriteRequest{
-		ID:           req.Id,
+		ID:           req.Id.Int64(),
 		PicName:      req.PicName,
 		Introduction: req.Introduction,
 		Category:     req.Category,

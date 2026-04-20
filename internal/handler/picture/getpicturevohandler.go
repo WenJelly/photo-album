@@ -17,7 +17,7 @@ func GetPictureVOHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := logicpicture.NewGetPictureLogic(r.Context(), svcCtx)
-		resp, err := l.GetPictureVOByID(req.Id, r.Header.Get("Authorization"))
+		resp, err := l.GetPictureVOByID(req.Id.Int64(), r.Header.Get("Authorization"))
 		response.Response(w, resp, err)
 	}
 }
