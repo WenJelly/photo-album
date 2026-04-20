@@ -32,7 +32,19 @@ func TestBuildStoredPictureURLs(t *testing.T) {
 			name:             "greater than threshold uses compressed image url",
 			size:             2<<20 + 1,
 			wantURL:          "https://example.com/public/1/demo.jpg",
-			wantThumbnailURL: "https://example.com/public/1/demo.jpg?imageMogr2/format/webp",
+			wantThumbnailURL: "https://example.com/public/1/demo.jpg?imageMogr2/thumbnail/2560x2560>/format/webp/quality/85!/minsize/1/ignore-error/1",
+		},
+		{
+			name:             "larger files use a tighter quality tier",
+			size:             5<<20 + 1,
+			wantURL:          "https://example.com/public/1/demo.jpg",
+			wantThumbnailURL: "https://example.com/public/1/demo.jpg?imageMogr2/thumbnail/1920x1920>/format/webp/quality/80!/minsize/1/ignore-error/1",
+		},
+		{
+			name:             "very large files use the strongest thumbnail tier",
+			size:             10 << 20,
+			wantURL:          "https://example.com/public/1/demo.jpg",
+			wantThumbnailURL: "https://example.com/public/1/demo.jpg?imageMogr2/thumbnail/1600x1600>/format/webp/quality/75!/minsize/1/ignore-error/1",
 		},
 	}
 

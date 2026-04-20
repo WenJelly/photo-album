@@ -21,10 +21,32 @@ import (
 func buildStoredPictureURLs(host, objectKey string, size int64) (string, string) {
 	baseURL := buildObjectURL(host, objectKey)
 	if size > compressedImageThreshold {
-		return baseURL, baseURL + "?imageMogr2/format/webp"
+		return baseURL, buildCompressedThumbnailURL(baseURL, size)
 	}
 
 	return baseURL, baseURL
+}
+
+func buildCompressedThumbnailURL(baseURL string, size int64) string {
+	maxEdge, quality := compressedThumbnailProfile(size)
+	return fmt.Sprintf(
+		"%s?imageMogr2/thumbnail/%dx%d>/format/webp/quality/%d!/minsize/1/ignore-error/1",
+		baseURL,
+		maxEdge,
+		maxEdge,
+		quality,
+	)
+}
+
+func compressedThumbnailProfile(size int64) (maxEdge int, quality int) {
+	switch {
+	case size >= largeCompressedThreshold:
+		return 1600, 75
+	case size > mediumCompressedThreshold:
+		return 1920, 80
+	default:
+		return 2560, 85
+	}
 }
 
 func buildObjectURL(host, objectKey string) string {

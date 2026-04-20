@@ -13,8 +13,10 @@ const (
 	// MaxFileUploadSize is the maximum accepted file upload size in bytes.
 	MaxFileUploadSize = 30 << 20
 
-	maxURLUploadSize         = 10 << 20
-	compressedImageThreshold = 2 << 20
+	maxURLUploadSize          = 10 << 20
+	compressedImageThreshold  = 2 << 20
+	mediumCompressedThreshold = 5 << 20
+	largeCompressedThreshold  = 10 << 20
 
 	reviewStatusPending = 0
 	reviewStatusPass    = 1
