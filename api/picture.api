@@ -125,6 +125,7 @@ service PictureCenter {
 	@handler GetPictureVO
 	get /picture/get/vo (PictureIDQueryRequest) returns (PictureResponse)
 
+	@doc "图片管理员原始详情，返回最新创建人摘要"
 	@handler GetPictureAdmin
 	get /picture/get (PictureIDQueryRequest) returns (PictureResponse)
 
@@ -140,6 +141,7 @@ service PictureCenter {
 	@handler ListMyPicture
 	post /picture/my/list/page (PictureListRequest) returns (PicturePageResponse)
 
+	@doc "图片管理员原始分页列表，返回最新创建人摘要"
 	@handler ListPicture
 	post /picture/list/page (PictureListRequest) returns (PicturePageResponse)
 

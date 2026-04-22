@@ -10,6 +10,7 @@ import (
 	"photo-album/internal/types"
 )
 
+// DeletePictureHandler 删除图片处理器
 func DeletePictureHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.PictureDeleteRequest

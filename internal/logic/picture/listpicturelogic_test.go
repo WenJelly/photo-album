@@ -71,6 +71,52 @@ func TestListMyPicturesForcesCurrentUserID(t *testing.T) {
 	}
 }
 
+func TestListPictureRawIncludesUserSummary(t *testing.T) {
+	const secret = "list-secret"
+
+	adminUser := &model.User{
+		Id:         9,
+		UserName:   "管理员",
+		UserAvatar: "https://example.com/admin.png",
+		UserRole:   "admin",
+		CreateTime: time.Date(2026, 4, 20, 10, 0, 0, 0, time.UTC),
+		UpdateTime: time.Date(2026, 4, 20, 10, 0, 0, 0, time.UTC),
+	}
+	picturesModel := &listStubPicturesModel{
+		total: 1,
+		pictures: []*model.Pictures{
+			{
+				Id:           101,
+				Url:          "https://example.com/demo.webp",
+				Name:         "demo",
+				UserId:       adminUser.Id,
+				CreateTime:   time.Date(2026, 4, 20, 10, 0, 0, 0, time.UTC),
+				EditTime:     time.Date(2026, 4, 20, 10, 0, 0, 0, time.UTC),
+				UpdateTime:   time.Date(2026, 4, 20, 10, 0, 0, 0, time.UTC),
+				ReviewStatus: reviewStatusPending,
+			},
+		},
+	}
+
+	logic := NewListPictureLogic(context.Background(), newReviewTestServiceContext(secret, &stubUserModel{user: adminUser}, picturesModel))
+	resp, err := logic.ListPictureRaw(&types.PictureListRequest{PageNum: 1, PageSize: 10}, bearerToken(t, secret, adminUser.Id))
+	if err != nil {
+		t.Fatalf("ListPictureRaw() unexpected error = %v", err)
+	}
+	if resp == nil || len(resp.List) != 1 {
+		t.Fatalf("ListPictureRaw() response = %+v", resp)
+	}
+	if resp.List[0].User == nil {
+		t.Fatalf("ListPictureRaw() user summary is nil")
+	}
+	if resp.List[0].User.Id.Int64() != adminUser.Id {
+		t.Fatalf("ListPictureRaw() user id = %d, want %d", resp.List[0].User.Id, adminUser.Id)
+	}
+	if resp.List[0].User.UserName != adminUser.UserName {
+		t.Fatalf("ListPictureRaw() userName = %q, want %q", resp.List[0].User.UserName, adminUser.UserName)
+	}
+}
+
 type listStubPicturesModel struct {
 	total        int64
 	pictures     []*model.Pictures

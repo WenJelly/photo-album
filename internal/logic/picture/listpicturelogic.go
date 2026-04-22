@@ -50,7 +50,7 @@ func (l *ListPictureLogic) ListPictureRaw(req *types.PictureListRequest, authori
 		return nil, err
 	}
 
-	return l.listPictures(req, authorization, false, false)
+	return l.listPictures(req, authorization, false, true)
 }
 
 func (l *ListPictureLogic) listPictures(req *types.PictureListRequest, _ string, publicOnly bool, withUser bool) (*types.PicturePageResponse, error) {

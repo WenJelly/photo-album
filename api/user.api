@@ -1,88 +1,88 @@
 syntax = "v1"
 
-info (
-	title:   "User API"
-	desc:    "用户系统接口服务"
-	author:  "Developer"
-	version: "v1.0"
+info(
+    title: "User API"
+    desc: "用户系统接口服务"
+    author: "Developer"
+    version: "v1.0"
 )
 
 type (
-	UserIDQueryRequest {
-		Id string `form:"id"`
-	}
+    UserIDQueryRequest {
+        Id string `form:"id"`
+    }
 
-	LoginRequest {
-		UserEmail    string `json:"userEmail" validate:"required"`
-		UserPassword string `json:"userPassword" validate:"required"`
-	}
-	RegisterRequest {
-		UserEmail         string `json:"userEmail" validate:"required"`
-		UserPassword      string `json:"userPassword" validate:"required"`
-		UserCheckPassword string `json:"userCheckPassword" validate:"required"`
-	}
-	LoginResponse {
-		Token       string `json:"token"`
-		Id          string `json:"id"`
-		UserAccount string `json:"userAccount"`
-		UserName    string `json:"userName"`
-		UserAvatar  string `json:"userAvatar"`
-		UserProfile string `json:"userProfile"`
-		UserRole    string `json:"userRole"`
-		CreateTime  string `json:"createTime"` // 修复：在接口层使用 string 或 int64
-		UpdateTime  string `json:"updateTime"` // 修复：在接口层使用 string 或 int64
-	}
-	RegisterResponse {
-		Id string `json:"id"`
-	}
+    LoginRequest {
+        UserEmail string `json:"userEmail" validate:"required"`
+        UserPassword string `json:"userPassword" validate:"required"`
+    }
+    RegisterRequest {
+        UserEmail string `json:"userEmail" validate:"required"`
+        UserPassword string `json:"userPassword" validate:"required"`
+        UserCheckPassword string `json:"userCheckPassword" validate:"required"`
+    }
+    LoginResponse {
+        Token string `json:"token"`
+        Id string `json:"id"`
+        UserAccount string `json:"userAccount"`
+        UserName string `json:"userName"`
+        UserAvatar string `json:"userAvatar"`
+        UserProfile string `json:"userProfile"`
+        UserRole string `json:"userRole"`
+        CreateTime string `json:"createTime"`
+        UpdateTime string `json:"updateTime"`
+    }
+    RegisterResponse {
+        Id string `json:"id"`
+    }
 
-	UpdateMyUserRequest {
-		UserName    string `json:"userName,optional"`
-		UserAvatar  string `json:"userAvatar,optional"`
-		UserProfile string `json:"userProfile,optional"`
-	}
+    UpdateMyUserRequest {
+        UserName string `json:"userName,optional"`
+        UserAvatar string `json:"userAvatar,optional"`
+        UserProfile string `json:"userProfile,optional"`
+    }
 
-	UserProfileResponse {
-		Id                   string `json:"id"`
-		UserName             string `json:"userName"`
-		UserAvatar           string `json:"userAvatar"`
-		UserProfile          string `json:"userProfile"`
-		UserRole             string `json:"userRole"`
-		CreateTime           string `json:"createTime"`
-		UpdateTime           string `json:"updateTime"`
-		PictureCount         int64  `json:"pictureCount"`
-		ApprovedPictureCount int64  `json:"approvedPictureCount"`
-		PendingPictureCount  int64  `json:"pendingPictureCount"`
-		RejectedPictureCount int64  `json:"rejectedPictureCount"`
-	}
+    UserProfileResponse {
+        Id string `json:"id"`
+        UserName string `json:"userName"`
+        UserAvatar string `json:"userAvatar"`
+        UserProfile string `json:"userProfile"`
+        UserRole string `json:"userRole"`
+        CreateTime string `json:"createTime"`
+        UpdateTime string `json:"updateTime"`
+        PictureCount int64 `json:"pictureCount"`
+        ApprovedPictureCount int64 `json:"approvedPictureCount"`
+        PendingPictureCount int64 `json:"pendingPictureCount"`
+        RejectedPictureCount int64 `json:"rejectedPictureCount"`
+    }
 )
 
-@server (
-	prefix: /api
-	group:  user
+@server(
+    prefix: /api
+    group: user
 )
 service UserCenter {
-	@doc "公开用户详情"
-	@handler GetUserVO
-	get /user/get/vo (UserIDQueryRequest) returns (UserProfileResponse)
+    @doc "公开用户详情"
+    @handler GetUserVO
+    get /user/get/vo (UserIDQueryRequest) returns (UserProfileResponse)
 
-	@doc "当前登录用户详情"
-	@handler GetMyUser
-	get /user/my returns (UserProfileResponse)
+    @doc "当前登录用户详情"
+    @handler GetMyUser
+    get /user/my returns (UserProfileResponse)
 
-	@doc "更新当前登录用户资料"
-	@handler UpdateMyUser
-	post /user/my (UpdateMyUserRequest) returns (UserProfileResponse)
+    @doc "更新当前登录用户资料"
+    @handler UpdateMyUser
+    post /user/my (UpdateMyUserRequest) returns (UserProfileResponse)
 
-	@doc "更新当前登录用户资料"
-	@handler UpdateMyUser
-	patch /user/my (UpdateMyUserRequest) returns (UserProfileResponse)
+    @doc "更新当前登录用户资料"
+    @handler UpdateMyUser
+    patch /user/my (UpdateMyUserRequest) returns (UserProfileResponse)
 
-	@doc "用户登录接口"
-	@handler LoginUser
-	post /user/login (LoginRequest) returns (LoginResponse)
+    @doc "用户登录接口"
+    @handler LoginUser
+    post /user/login (LoginRequest) returns (LoginResponse)
 
-	@doc "用户注册接口"
-	@handler RegisterUser
-	post /user/register (RegisterRequest) returns (RegisterResponse)
+    @doc "用户注册接口"
+    @handler RegisterUser
+    post /user/register (RegisterRequest) returns (RegisterResponse)
 }

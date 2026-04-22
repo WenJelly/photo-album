@@ -568,7 +568,7 @@ Token 来源：
 说明：
 
 - 返回结构仍是 `PictureResponse`
-- 当前实现不会补 `user` 创建人摘要
+- 会补 `user` 创建人摘要，字段取当前用户表中的最新信息
 - 不增加浏览数
 
 ## 图片删除接口
@@ -762,7 +762,7 @@ Token 来源：
 - `reviewMessage`
 - `reviewerId`
 
-且不会补 `list[].user`。
+同时也会补 `list[].user`，字段取当前用户表中的最新信息。
 
 ## 首页轮播接口
 

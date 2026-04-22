@@ -81,5 +81,10 @@ func (l *GetPictureLogic) GetPictureRawByID(id int64, authorization string) (*ty
 		return nil, commonresponse.InternalServerError("查询图片失败")
 	}
 
-	return buildPictureResponse(pictureInfo), nil
+	userMap, err := loadUserSummaryMap(l.ctx, l.svcCtx, []int64{pictureInfo.UserId})
+	if err != nil {
+		return nil, err
+	}
+
+	return buildPictureResponseWithUser(pictureInfo, userMap[pictureInfo.UserId]), nil
 }
