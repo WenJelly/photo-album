@@ -58,8 +58,8 @@ func (l *LoginUserLogic) LoginUser(req *types.LoginRequest) (resp *types.LoginRe
 
 	return &types.LoginResponse{
 		Token:       jwtToken,
-		Id:          types.NewSnowflakeID(userInfo.Id),
-		UserAccount: userInfo.UserEmail,
+		Id:          formatUserID(userInfo.Id),
+		UserEmail:   userInfo.UserEmail,
 		UserName:    userInfo.UserName,
 		UserAvatar:  userInfo.UserAvatar,
 		UserProfile: userInfo.UserProfile,

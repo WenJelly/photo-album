@@ -60,7 +60,6 @@ type (
 		ReviewMessage sql.NullString  `db:"reviewMessage"`
 		ReviewerId    sql.NullInt64   `db:"reviewerId"`
 		ReviewTime    sql.NullTime    `db:"reviewTime"`
-		ThumbnailUrl  sql.NullString  `db:"thumbnailUrl"`
 		PicColor      sql.NullString  `db:"picColor"`
 		ViewCount     int64           `db:"viewCount"`
 		LikeCount     int64           `db:"likeCount"`
@@ -104,7 +103,7 @@ func (m *defaultPicturesModel) FindOne(ctx context.Context, id int64) (*Pictures
 func (m *defaultPicturesModel) Insert(ctx context.Context, data *Pictures) (sql.Result, error) {
 	picturesIdKey := fmt.Sprintf("%s%v", cachePicturesIdPrefix, data.Id)
 	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (sql.Result, error) {
-		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, picturesRowsExpectAutoSet)
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", m.table, picturesRowsExpectAutoSet)
 		return conn.ExecCtx(
 			ctx,
 			query,
@@ -126,7 +125,6 @@ func (m *defaultPicturesModel) Insert(ctx context.Context, data *Pictures) (sql.
 			data.ReviewMessage,
 			data.ReviewerId,
 			data.ReviewTime,
-			data.ThumbnailUrl,
 			data.PicColor,
 			data.ViewCount,
 			data.LikeCount,
@@ -161,7 +159,6 @@ func (m *defaultPicturesModel) Update(ctx context.Context, data *Pictures) error
 			data.ReviewMessage,
 			data.ReviewerId,
 			data.ReviewTime,
-			data.ThumbnailUrl,
 			data.PicColor,
 			data.ViewCount,
 			data.LikeCount,

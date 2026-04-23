@@ -10,23 +10,23 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetPictureListLogic struct {
+type GetAdminPictureListLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetPictureListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPictureListLogic {
-	return &GetPictureListLogic{
+func NewGetAdminPictureListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetAdminPictureListLogic {
+	return &GetAdminPictureListLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetPictureListLogic) GetPictureList(req *types.QueryPictureRequest) (*types.PicturePageResponse, error) {
+func (l *GetAdminPictureListLogic) GetAdminPictureList(req *types.AdminQueryPictureRequest) (*types.PicturePageResponse, error) {
 	if req == nil {
-		req = &types.QueryPictureRequest{}
+		req = &types.AdminQueryPictureRequest{}
 	}
 
 	pageNum, pageSize, err := normalizePicturePage(req.PageNum, req.PageSize)
@@ -34,7 +34,7 @@ func (l *GetPictureListLogic) GetPictureList(req *types.QueryPictureRequest) (*t
 		return nil, err
 	}
 
-	whereSQL, args, err := buildPictureListWhere(req, true)
+	whereSQL, args, err := buildAdminPictureListWhere(req)
 	if err != nil {
 		return nil, err
 	}

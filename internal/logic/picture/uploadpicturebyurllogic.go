@@ -26,8 +26,16 @@ func NewUploadPictureByUrlLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *UploadPictureByUrlLogic) UploadPictureByUrl(req *types.PictureUploadByUrlRequest, authorization string) (*types.PictureResponse, error) {
+	if req == nil {
+		return nil, response.BadRequest("请求体不能为空")
+	}
 	if strings.TrimSpace(req.FileUrl) == "" {
 		return nil, response.BadRequest("fileUrl 不能为空")
+	}
+
+	pictureID, err := parseOptionalSnowflakeID(req.Id, "id")
+	if err != nil {
+		return nil, err
 	}
 
 	loginUser, err := loadRequiredLoginUser(l.ctx, l.svcCtx, authorization)
@@ -42,7 +50,7 @@ func (l *UploadPictureByUrlLogic) UploadPictureByUrl(req *types.PictureUploadByU
 	defer cleanup()
 
 	return storePicture(l.ctx, l.svcCtx, tempPath, originalFilename, pictureWriteRequest{
-		ID:           req.Id.Int64(),
+		ID:           pictureID,
 		PicName:      req.PicName,
 		Introduction: req.Introduction,
 		Category:     req.Category,

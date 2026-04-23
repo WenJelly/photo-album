@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	commonauth "photo-album/internal/common/auth"
 	commonresponse "photo-album/internal/common/response"
 	"photo-album/internal/svc"
 	"photo-album/internal/types"
@@ -28,20 +29,25 @@ func NewReviewPictureLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Rev
 	}
 }
 
-func (l *ReviewPictureLogic) ReviewPicture(req *types.PictureReviewRequest, authorization string) (*types.PictureResponse, error) {
-	if req == nil || req.Id <= 0 {
-		return nil, commonresponse.BadRequest("id 必须是正整数")
+func (l *ReviewPictureLogic) ReviewPicture(req *types.ReviewPictureRequest, authorization string) (*types.PictureResponse, error) {
+	if req == nil {
+		return nil, commonresponse.BadRequest("请求体不能为空")
+	}
+
+	pictureID, err := parseRequiredSnowflakeID(req.Id, "id")
+	if err != nil {
+		return nil, err
 	}
 	if err := validateReviewDecision(req.ReviewStatus, req.ReviewMessage); err != nil {
 		return nil, err
 	}
 
-	loginUser, err := loadRequiredAdmin(l.ctx, l.svcCtx, authorization)
+	loginUser, err := commonauth.LoadRequiredLoginUser(l.ctx, l.svcCtx, authorization)
 	if err != nil {
 		return nil, err
 	}
 
-	pictureInfo, err := l.svcCtx.PicturesModel.FindOneActive(l.ctx, req.Id.Int64())
+	pictureInfo, err := l.svcCtx.PicturesModel.FindOneActive(l.ctx, pictureID)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, commonresponse.NotFound("图片不存在")
@@ -60,7 +66,12 @@ func (l *ReviewPictureLogic) ReviewPicture(req *types.PictureReviewRequest, auth
 		return nil, commonresponse.InternalServerError("审核图片失败")
 	}
 
-	return buildPictureResponse(pictureInfo), nil
+	userMap, err := loadUserDetailMap(l.ctx, l.svcCtx, []int64{pictureInfo.UserId})
+	if err != nil {
+		return nil, err
+	}
+
+	return buildPictureResponseWithUser(pictureInfo, userMap[pictureInfo.UserId], types.CompressPictureType{})
 }
 
 func validateReviewDecision(reviewStatus int64, reviewMessage string) error {

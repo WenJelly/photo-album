@@ -1,35 +1,57 @@
-# 前端接口文档
+# Photo Album Frontend API 文档
 
-## 文档范围
+本文档面向前端开发，基于当前仓库实际代码整理，不是纯 `.api` 文件转写。
 
-本文档描述当前仓库已经实际暴露的前端接口，覆盖以下能力：
+更新时间：2026-04-23
 
-- 用户注册
-- 用户登录
-- 公开用户详情
-- 当前登录用户详情
-- 当前登录用户资料更新
-- 图片文件上传
-- 图片 URL 上传
-- 图片业务详情
-- 图片管理原始详情
-- 图片删除
-- 图片管理员审核
-- 图片业务分页列表
-- 当前登录用户作品分页列表
-- 图片管理原始分页列表
-- 首页轮播图
+## 1. 文档范围
 
-当前后端返回的是图片元数据和图片地址，不会通过接口直接返回图片二进制。前端应直接使用 `url` 或 `thumbnailUrl` 加载图片资源，其中 `thumbnailUrl` 当前实际语义为压缩图地址。
+当前后端对前端实际暴露的接口如下：
 
-## 基础信息
+1. `POST /api/user/login`
+2. `POST /api/user/register`
+3. `POST /api/user/get/detail`
+4. `POST /api/user/update`
+5. `POST /api/admin/user/update`
+6. `POST /api/admin/picture/list`
+7. `POST /api/picture/list`
+8. `POST /api/picture/vo`
+9. `POST /api/picture/upload`
+10. `POST /api/picture/upload/url`
+11. `POST /api/picture/delete`
+12. `POST /api/picture/review`
 
-- Base URL：`http://localhost:8888/api`
-- JSON 接口 Content-Type：`application/json`
-- 文件上传接口 Content-Type：`multipart/form-data`
-- 鉴权方式：`Authorization: Bearer <jwt-token>`
+## 2. 全局约定
 
-统一响应包裹：
+### 2.1 Base URL
+
+服务本身没有写死域名，前端只需要在部署环境中拼接服务地址。
+
+接口路径前缀固定为：
+
+```text
+/api
+```
+
+管理员用户资料修改接口路径前缀为：
+
+```text
+/api/admin
+```
+
+### 2.2 鉴权方式
+
+需要登录的接口统一使用：
+
+```http
+Authorization: Bearer <token>
+```
+
+`token` 由登录接口 `/api/user/login` 返回。
+
+### 2.3 通用响应结构
+
+所有接口统一返回：
 
 ```json
 {
@@ -39,147 +61,284 @@
 }
 ```
 
-响应规则：
+字段说明：
 
-- `code`：当前实现里业务码与 HTTP 状态语义保持一致
-- `message`：用户可读信息，`4xx` 场景通常可直接展示
-- `data`：成功时返回，失败时通常省略
-- 前端成功判断条件：`body.code === 200`
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `code` | `number` | 业务码，当前与 HTTP 状态码保持一致 |
+| `message` | `string` | 后端返回的提示信息 |
+| `data` | `object | array | null` | 成功时的业务数据；部分无返回体接口会省略 |
 
-## 雪花 ID 约定
+### 2.4 常见状态码
 
-后端当前所有对外 `id / userId / reviewerId` 都按字符串返回，避免前端 JavaScript 精度丢失。
+| HTTP / code | 含义 |
+| --- | --- |
+| `200` | 成功 |
+| `400` | 请求参数错误 |
+| `401` | 未登录、token 非法、token 失效 |
+| `403` | 无权限 |
+| `404` | 资源不存在 |
+| `409` | 资源冲突，例如邮箱已注册 |
+| `500` | 服务端异常 |
 
-前端接入规则：
-
-- 所有 ID 在前端状态、路由参数、请求参数里都按 `string` 处理
-- JSON 请求体里的 ID，后端同时兼容：
-  - `"1921565896585154562"`
-  - `1921565896585154562`
-- 仍然强烈建议前端统一传字符串，避免浏览器在发送前先把大整数转成不安全的 `number`
-- query/path/form-data 里的 ID 一律按字符串传
-
-示例：
+错误返回示例：
 
 ```json
 {
-  "id": "1921565896585154562"
+  "code": 400,
+  "message": "id 必须是正整数"
 }
 ```
 
-## 通用错误码
+### 2.5 ID 类型约定
 
-- `200`：成功
-- `400`：请求参数错误、文件非法、URL 非法、分页参数非法、时间格式错误
-- `401`：未登录、JWT 无效、密码错误
-- `403`：已登录但无权限，例如查看未过审图片、访问管理员接口、删除他人图片
-- `404`：资源不存在
-- `409`：资源冲突，当前主要用于注册邮箱重复
-- `500`：服务端异常，例如数据库失败、生成 Token 失败、COS 上传失败、文件处理失败
+所有对前端暴露的 ID 都按字符串处理，包括但不限于：
 
-## 鉴权
+- `user.id`
+- `picture.id`
+- `picture.userId`
+- `picture.reviewerId`
 
-受保护接口需要携带：
+前端不要把这些字段当成 JS number 使用，避免大整数精度问题。
 
-```http
-Authorization: Bearer <jwt-token>
+### 2.6 时间格式约定
+
+后端返回时间字段统一为字符串，格式：
+
+```text
+YYYY-MM-DD HH:mm:ss
 ```
 
-Token 来源：
+例如：
 
-- 前端通过 `POST /api/user/login` 获取
-- 当前 token 里主要包含：
-  - `userId`：字符串
-  - `iat`
-  - `exp`
+```text
+2026-04-23 14:30:45
+```
 
-建议：
+### 2.7 图片审核状态约定
 
-- 前端如果需要从 token 中读取 `userId`，也按字符串处理
-- 不要把 token 里的 `userId` 当作 `number`
+| 值 | 含义 |
+| --- | --- |
+| `0` | 待审核 |
+| `1` | 审核通过 |
+| `2` | 审核拒绝 |
 
-## 接口总览
+### 2.8 图片压缩参数 `compressPictureType`
 
-| 方法 | 路径 | 用途 | 鉴权 |
-| --- | --- | --- | --- |
-| POST | `/user/register` | 用户注册 | 无 |
-| POST | `/user/login` | 用户登录 | 无 |
-| GET | `/user/get/vo?id=...` | 公开用户详情 | 无 |
-| GET | `/user/my` | 当前登录用户详情 | 需要 |
-| POST | `/user/my` | 更新当前登录用户资料 | 需要 |
-| PATCH | `/user/my` | 更新当前登录用户资料 | 需要 |
-| POST | `/picture/upload` | 图片文件上传 | 需要 |
-| POST | `/picture/upload/url` | 图片 URL 上传 | 需要 |
-| GET | `/picture/get/vo?id=...` | 图片业务详情 | 审核通过可公开访问 |
-| GET | `/picture/:id` | 图片业务详情别名 | 审核通过可公开访问 |
-| GET | `/picture/get?id=...` | 图片管理原始详情 | 仅管理员 |
-| POST | `/picture/delete` | 图片删除 | 需要 |
-| POST | `/picture/review` | 图片管理员审核 | 仅管理员 |
-| POST | `/picture/list/page/vo` | 图片业务分页列表 | 无 |
-| POST | `/picture/my/list/page` | 当前登录用户作品分页列表 | 需要 |
-| POST | `/picture/list/page` | 图片管理原始分页列表 | 仅管理员 |
-| GET | `/picture/home/carousel` | 首页轮播图 | 无 |
-
-## 用户接口
-
-### POST /user/register
-
-- 完整路径：`POST /api/user/register`
-- Content-Type：`application/json`
-- 鉴权：无
-
-请求体：
+多个图片接口都支持传：
 
 ```json
 {
-  "userEmail": "new@example.com",
-  "userPassword": "secret123",
-  "userCheckPassword": "secret123"
-}
-```
-
-请求字段说明：
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `userEmail` | string | 是 | 用户唯一邮箱 |
-| `userPassword` | string | 是 | 明文密码 |
-| `userCheckPassword` | string | 是 | 必须与 `userPassword` 一致 |
-
-成功响应：
-
-```json
-{
-  "code": 200,
-  "message": "成功",
-  "data": {
-    "id": "1921565896585154562"
+  "compressPictureType": {
+    "compressType": 0,
+    "cutWidth": 0,
+    "CutHeight": 0
   }
 }
 ```
 
-常见失败场景：
+字段说明：
 
-- `400`：JSON 格式错误、缺少必填字段、两次密码不一致
-- `409`：邮箱已存在
-- `500`：数据库失败、密码加密失败、插入失败
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `compressType` | `number` | `0` 不压缩；`1` 返回后端计算出的缩略图地址；`2` 返回居中裁剪图地址 |
+| `cutWidth` | `number` | `compressType=2` 时必填，必须为正整数 |
+| `CutHeight` | `number` | `compressType=2` 时必填，必须为正整数 |
 
-### POST /user/login
+后端行为：
 
-- 完整路径：`POST /api/user/login`
-- Content-Type：`application/json`
-- 鉴权：无
+1. `compressType=0` 时，`thumbnailUrl` 直接等于原图 `url`
+2. `compressType=1` 时：
+   - 图片大小 `<= 2MB`，`thumbnailUrl` 仍然可能等于原图
+   - 图片大小 `> 2MB`，后端会按图片大小生成 COS 压缩参数地址
+3. `compressType=2` 时，后端返回居中裁剪后的 COS 参数地址
 
-请求体：
+注意：
+
+1. `thumbnailUrl` 是运行时计算字段，不是数据库存储字段
+2. `cutWidth` 和 `CutHeight` 大小写当前后端定义不一致，前端应严格按后端字段名发送：
+   - 宽度字段：`cutWidth`
+   - 高度字段：`CutHeight`
+
+## 3. 数据结构
+
+### 3.1 UserDetail
+
+用于图片返回中的上传者简要信息。
 
 ```json
 {
-  "userEmail": "user@example.com",
-  "userPassword": "secret123"
+  "id": "123",
+  "userName": "张三",
+  "userAvatar": "https://...",
+  "userProfile": "摄影爱好者",
+  "userRole": "user"
 }
 ```
 
-成功响应：
+### 3.2 PictureResponse
+
+单张图片返回结构：
+
+```json
+{
+  "id": "101",
+  "url": "https://cos.example.com/public/1/2026-04-23_xxx.jpg",
+  "name": "海边日落",
+  "introduction": "傍晚拍摄",
+  "category": "风景",
+  "tags": ["日落", "海边"],
+  "picSize": 3145728,
+  "picWidth": 1920,
+  "picHeight": 1080,
+  "picScale": 1.7777777778,
+  "picFormat": "jpg",
+  "userId": "1",
+  "user": {
+    "id": "1",
+    "userName": "张三",
+    "userAvatar": "https://...",
+    "userProfile": "摄影爱好者",
+    "userRole": "user"
+  },
+  "createTime": "2026-04-23 10:00:00",
+  "editTime": "2026-04-23 10:00:00",
+  "updateTime": "2026-04-23 10:00:00",
+  "reviewStatus": 1,
+  "reviewMessage": "",
+  "reviewerId": "2",
+  "reviewTime": "2026-04-23 10:05:00",
+  "thumbnailUrl": "https://cos.example.com/...",
+  "picColor": "#A1B2C3",
+  "viewCount": 12,
+  "likeCount": 0
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | 图片 ID |
+| `url` | `string` | 原图地址 |
+| `name` | `string` | 图片名称 |
+| `introduction` | `string` | 简介，可能为空字符串 |
+| `category` | `string` | 分类，可能为空字符串 |
+| `tags` | `string[]` | 标签数组 |
+| `picSize` | `number` | 文件大小，单位字节 |
+| `picWidth` | `number` | 图片宽度 |
+| `picHeight` | `number` | 图片高度 |
+| `picScale` | `number` | 宽高比 |
+| `picFormat` | `string` | 图片格式，如 `jpg` / `png` / `webp` |
+| `userId` | `string` | 上传者用户 ID |
+| `user` | `UserDetail` | 上传者摘要信息 |
+| `createTime` | `string` | 创建时间 |
+| `editTime` | `string` | 编辑时间 |
+| `updateTime` | `string` | 更新时间 |
+| `reviewStatus` | `number` | 审核状态：`0/1/2` |
+| `reviewMessage` | `string` | 审核说明 |
+| `reviewerId` | `string` | 审核人 ID，没有时为空字符串 |
+| `reviewTime` | `string` | 审核时间，没有时为空字符串 |
+| `thumbnailUrl` | `string` | 缩略图/压缩图地址 |
+| `picColor` | `string` | 主色，格式示例 `#A1B2C3` |
+| `viewCount` | `number` | 浏览次数 |
+| `likeCount` | `number` | 点赞数，当前后端只返回，不提供变更接口 |
+
+### 3.3 PicturePageResponse
+
+```json
+{
+  "pageNum": 1,
+  "pageSize": 10,
+  "total": 128,
+  "list": []
+}
+```
+
+### 3.4 LoginResponse
+
+```json
+{
+  "token": "xxx",
+  "id": "1",
+  "userEmail": "test@example.com",
+  "userName": "用户",
+  "userAvatar": "",
+  "userProfile": "",
+  "userRole": "user",
+  "createTime": "2026-04-23 10:00:00",
+  "updateTime": "2026-04-23 10:00:00"
+}
+```
+
+### 3.5 DetailUserResponse
+
+```json
+{
+  "id": "1",
+  "userName": "用户",
+  "userEmail": "test@example.com",
+  "userAvatar": "",
+  "userProfile": "",
+  "userRole": "user",
+  "createTime": "2026-04-23 10:00:00",
+  "updateTime": "2026-04-23 10:00:00",
+  "pictureCount": 12,
+  "approvedPictureCount": 10,
+  "pendingPictureCount": 1,
+  "rejectedPictureCount": 1
+}
+```
+
+## 4. 接口清单总览
+
+| 接口 | 方法 | 是否登录 | 是否管理员 | 作用 |
+| --- | --- | --- | --- | --- |
+| `/api/user/login` | `POST` | 否 | 否 | 用户登录并获取 token |
+| `/api/user/register` | `POST` | 否 | 否 | 用户注册 |
+| `/api/user/get/detail` | `POST` | 是 | 否 | 获取当前用户或指定用户详情和作品统计 |
+| `/api/user/update` | `POST` | 是 | 否 | 修改自己的资料 |
+| `/api/admin/user/update` | `POST` | 是 | 是 | 管理员修改任意用户资料和角色 |
+| `/api/admin/picture/list` | `POST` | 是 | 是 | 管理员获取图片审核列表 |
+| `/api/picture/list` | `POST` | 否 | 否 | 获取公开图片分页列表 |
+| `/api/picture/vo` | `POST` | 是 | 否 | 获取单张图片详情，用于预览 |
+| `/api/picture/upload` | `POST` | 是 | 否 | 本地文件上传图片；传 `id` 时可更新已有图片 |
+| `/api/picture/upload/url` | `POST` | 是 | 否 | 通过远程 URL 上传图片；传 `id` 时可更新已有图片 |
+| `/api/picture/delete` | `POST` | 是 | 否 | 删除图片，仅上传者或管理员可删 |
+| `/api/picture/review` | `POST` | 是 | 是 | 管理员审核图片 |
+
+## 5. 详细接口说明
+
+### 5.1 用户登录
+
+**接口**
+
+```http
+POST /api/user/login
+Content-Type: application/json
+```
+
+**作用**
+
+用户使用邮箱和密码登录，成功后返回 JWT token 及用户基础信息。
+
+**请求体**
+
+```json
+{
+  "userEmail": "test@example.com",
+  "userPassword": "123456"
+}
+```
+
+**字段说明**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `userEmail` | `string` | 是 | 邮箱 |
+| `userPassword` | `string` | 是 | 密码明文 |
+
+**成功返回**
 
 ```json
 {
@@ -187,688 +346,1086 @@ Token 来源：
   "message": "成功",
   "data": {
     "token": "jwt-token",
-    "id": "1921565896585154562",
-    "userAccount": "user@example.com",
+    "id": "1",
+    "userEmail": "test@example.com",
     "userName": "用户",
     "userAvatar": "",
     "userProfile": "",
     "userRole": "user",
-    "createTime": "2026-04-18 20:00:00",
-    "updateTime": "2026-04-18 20:00:00"
+    "createTime": "2026-04-23 10:00:00",
+    "updateTime": "2026-04-23 10:00:00"
   }
 }
 ```
 
-响应字段说明：
+**后端行为**
 
-| 字段 | 类型 | 说明 |
+1. 按邮箱查用户
+2. 账号不存在或已删除时返回 `404`
+3. 密码错误返回 `401`
+4. 登录成功后生成 JWT，`userId` 会写入 token claims
+
+**常见失败**
+
+| 场景 | code | message |
 | --- | --- | --- |
-| `token` | string | 后续受保护接口的 Bearer Token |
-| `id` | string | 当前用户 ID，雪花 ID 字符串 |
-| `userAccount` | string | 当前实现里等同于 `userEmail` |
-| `userName` | string | 显示名称 |
-| `userAvatar` | string | 头像地址 |
-| `userProfile` | string | 个人简介 |
-| `userRole` | string | 当前角色，可能为 `user` 或 `admin` |
-| `createTime` | string | 格式：`yyyy-MM-dd HH:mm:ss` |
-| `updateTime` | string | 格式：`yyyy-MM-dd HH:mm:ss` |
+| 账号不存在 | `404` | `账号不存在` |
+| 密码错误 | `401` | `密码错误` |
+| 生成 token 失败 | `500` | `生成 Token 失败` |
 
-常见失败场景：
+**前端注意**
 
-- `400`：JSON 格式错误、缺少必填字段
-- `401`：密码错误
-- `404`：账号不存在
-- `500`：数据库查询失败、Token 生成失败
+1. 登录成功后应保存 `token`
+2. 后续登录态接口统一传 `Authorization: Bearer <token>`
 
-### UserProfileResponse
+---
 
-用户详情相关接口统一返回以下结构：
+### 5.2 用户注册
+
+**接口**
+
+```http
+POST /api/user/register
+Content-Type: application/json
+```
+
+**作用**
+
+注册普通用户账号。
+
+**请求体**
 
 ```json
 {
-  "id": "1921565896585154562",
-  "userName": "用户",
-  "userAvatar": "https://example.com/avatar.png",
-  "userProfile": "热爱摄影",
-  "userRole": "user",
-  "createTime": "2026-04-18 20:00:00",
-  "updateTime": "2026-04-20 11:00:00",
-  "pictureCount": 8,
-  "approvedPictureCount": 5,
-  "pendingPictureCount": 2,
-  "rejectedPictureCount": 1
+  "userEmail": "test@example.com",
+  "userPassword": "123456",
+  "userCheckPassword": "123456"
 }
 ```
 
-字段说明：
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | string | 用户 ID，雪花 ID 字符串 |
-| `userName` | string | 用户昵称 |
-| `userAvatar` | string | 头像地址 |
-| `userProfile` | string | 用户简介 |
-| `userRole` | string | 用户角色，当前可能为 `user` 或 `admin` |
-| `createTime` | string | 创建时间，格式 `yyyy-MM-dd HH:mm:ss` |
-| `updateTime` | string | 更新时间，格式 `yyyy-MM-dd HH:mm:ss` |
-| `pictureCount` | number | 当前用户未删除作品总数 |
-| `approvedPictureCount` | number | 当前用户已通过作品数 |
-| `pendingPictureCount` | number | 当前用户待审核作品数 |
-| `rejectedPictureCount` | number | 当前用户已拒绝作品数 |
-
-### GET /user/get/vo?id=<userId>
-
-- 完整路径：`GET /api/user/get/vo?id=<userId>`
-- 鉴权：无
-
-查询参数：
+**字段说明**
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `id` | string | 是 | 用户 ID |
-
-后端行为：
-
-- 只查询未删除用户
-- 返回 `UserProfileResponse`
-- 作品统计基于 `pictures.isDelete = 0`
-
-常见失败场景：
-
-- `400`：`id` 非法
-- `404`：用户不存在
-- `500`：数据库失败
-
-### GET /user/my
-
-- 完整路径：`GET /api/user/my`
-- 鉴权：需要
-
-后端行为：
-
-- 根据 Bearer Token 识别当前登录用户
-- 返回 `UserProfileResponse`
-- 作品统计基于当前登录用户全部未删除作品
-
-常见失败场景：
-
-- `401`：未登录、Token 无效、登录用户不存在
-- `500`：数据库失败
-
-### POST /user/my
-
-- 完整路径：`POST /api/user/my`
-- Content-Type：`application/json`
-- 鉴权：需要
-
-### PATCH /user/my
-
-- 完整路径：`PATCH /api/user/my`
-- Content-Type：`application/json`
-- 鉴权：需要
-
-说明：
-
-- `POST` 和 `PATCH` 当前行为完全一致，前端任选其一
-- 只允许更新：
-  - `userName`
-  - `userAvatar`
-  - `userProfile`
-- 至少传一个字段
-- `userName.trim()` 不能为空
-- 长度限制：
-  - `userName` 最长 `256`
-  - `userAvatar` 最长 `1024`
-  - `userProfile` 最长 `512`
-
-请求体示例：
-
-```json
-{
-  "userName": "旅行摄影师",
-  "userAvatar": "https://example.com/new-avatar.png",
-  "userProfile": "记录每一次出发"
-}
-```
-
-成功响应：
-
-- 返回更新后的 `UserProfileResponse`
-
-常见失败场景：
-
-- `400`：请求体为空、没有可更新字段、`userName` 为空、字段长度超限
-- `401`：未登录、Token 无效、登录用户不存在
-- `500`：数据库失败
-
-## 图片数据结构
-
-### UserSummary
-
-```json
-{
-  "id": "1921565896585154562",
-  "userName": "用户",
-  "userAvatar": "",
-  "userProfile": "",
-  "userRole": "user"
-}
-```
-
-### PictureResponse
-
-说明：字段名仍然叫 `thumbnailUrl`，但当前后端为了兼容旧前端，没有改字段名；它实际表示“压缩图地址”，不是 `128x128` 缩略图。
-
-```json
-{
-  "id": "1921565896585154562",
-  "url": "https://picture-storage-1325426290.cos.ap-guangzhou.myqcloud.com/public/1/demo.jpg",
-  "name": "cover",
-  "introduction": "summer trip",
-  "category": "travel",
-  "tags": ["travel", "sea"],
-  "picSize": 12345678,
-  "picWidth": 1920,
-  "picHeight": 1080,
-  "picScale": 1.7777777778,
-  "picFormat": "jpg",
-  "userId": "1921565896585154562",
-  "user": {
-    "id": "1921565896585154562",
-    "userName": "用户",
-    "userAvatar": "",
-    "userProfile": "",
-    "userRole": "user"
-  },
-  "createTime": "2026-04-19 20:30:00",
-  "editTime": "2026-04-19 20:30:00",
-  "updateTime": "2026-04-19 20:30:00",
-  "reviewStatus": 1,
-  "reviewMessage": "审核通过",
-  "reviewerId": "1921565896585154563",
-  "reviewTime": "2026-04-19 20:35:00",
-  "thumbnailUrl": "https://picture-storage-1325426290.cos.ap-guangzhou.myqcloud.com/public/1/demo.jpg?imageMogr2/format/webp",
-  "picColor": "#AABBCC",
-  "viewCount": 12,
-  "likeCount": 3
-}
-```
-
-字段说明：
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | string | 图片 ID，雪花 ID 字符串 |
-| `url` | string | 主图访问地址 |
-| `name` | string | 图片名称 |
-| `introduction` | string | 简介，可为空 |
-| `category` | string | 分类，可为空 |
-| `tags` | string[] | 标签数组，可为空 |
-| `picSize` | number | 文件大小，单位字节 |
-| `picWidth` | number | 宽度 |
-| `picHeight` | number | 高度 |
-| `picScale` | number | 宽高比 |
-| `picFormat` | string | 当前支持 `jpg`、`jpeg`、`png`、`webp` |
-| `userId` | string | 创建人 ID |
-| `user` | object | 创建人摘要，业务接口通常会返回，管理员原始接口可能为空 |
-| `createTime` | string | 创建时间，格式 `yyyy-MM-dd HH:mm:ss` |
-| `editTime` | string | 编辑时间，格式 `yyyy-MM-dd HH:mm:ss` |
-| `updateTime` | string | 更新时间，格式 `yyyy-MM-dd HH:mm:ss` |
-| `reviewStatus` | number | `0 = 待审核`，`1 = 已通过`，`2 = 已拒绝` |
-| `reviewMessage` | string | 审核说明 |
-| `reviewerId` | string | 审核人 ID，可能为空字符串 |
-| `reviewTime` | string | 审核时间 |
-| `thumbnailUrl` | string | 压缩图地址；图片小于等于 `2MB` 时等于原图，大于 `2MB` 时返回压缩图地址 |
-| `picColor` | string | 主色调，例如 `#AABBCC` |
-| `viewCount` | number | 浏览次数 |
-| `likeCount` | number | 点赞次数 |
-
-### PicturePageResponse
-
-```json
-{
-  "pageNum": 1,
-  "pageSize": 10,
-  "total": 23,
-  "list": []
-}
-```
-
-### PictureDeleteResponse
-
-```json
-{
-  "id": "1921565896585154562"
-}
-```
-
-## 图片上传接口
-
-### POST /picture/upload
-
-- 完整路径：`POST /api/picture/upload`
-- Content-Type：`multipart/form-data`
-- 鉴权：需要
-
-表单字段：
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `file` | file | 是 | 图片文件 |
-| `id` | string | 否 | 已存在图片 ID，用于更新图片 |
-| `picName` | string | 否 | 自定义图片名称 |
-| `introduction` | string | 否 | 简介 |
-| `category` | string | 否 | 分类 |
-| `tags` | string | 否 | 支持 JSON 数组字符串，如 `["a","b"]`，或逗号分隔字符串，如 `a,b` |
-
-后端行为：
-
-- 必须先登录
-- 文件不能为空
-- 允许格式：`jpg`、`jpeg`、`png`、`webp`
-- 文件大小上限：`30MB`
-- 后端会先保存临时文件、提取元数据、上传到 COS、再写数据库
-- 对象存储路径格式：`public/{userId}/{yyyy-MM-dd}_{16位随机hex}.{ext}`
-- `url` 指向原图
-- `thumbnailUrl` 在图片大小大于 `2MB` 时使用压缩图，否则等于原图
-- 如果 `picName` 为空，则取原始文件名去掉扩展名
-- 如果传了 `id`：
-  - 会先查原记录
-  - 只有图片所有者或管理员能更新
-  - 原有 `createTime`、`userId`、`viewCount`、`likeCount` 会保留
-- 审核逻辑：
-  - 管理员上传：自动通过
-  - 普通用户上传：进入待审核
-
-成功响应：
-
-- 返回 `PictureResponse`
-
-常见失败场景：
-
-- `400`：缺少文件、`id` 非法、`tags` 非法、格式不支持、文件过大
-- `401`：未登录或 JWT 无效
-- `403`：尝试更新他人的图片
-- `404`：目标图片不存在
-- `500`：临时文件失败、元数据提取失败、数据库失败、COS 上传失败
-
-### POST /picture/upload/url
-
-- 完整路径：`POST /api/picture/upload/url`
-- Content-Type：`application/json`
-- 鉴权：需要
-
-请求体：
-
-```json
-{
-  "id": "1921565896585154562",
-  "fileUrl": "https://example.com/demo.webp",
-  "picName": "remote-demo",
-  "introduction": "remote upload",
-  "category": "demo",
-  "tags": ["remote", "sample"]
-}
-```
-
-说明：
-
-- `id` 既支持字符串，也兼容数字；前端建议始终传字符串
-- `fileUrl` 必须是合法 `http/https` 地址
-- 后端会先尝试 `HEAD`，再走 `GET`
-- 如果 `HEAD` 返回正常，会校验：
-  - `Content-Type` 必须以 `image/` 开头
-  - `Content-Length <= 10MB`
-- 远程图片大小上限：`10MB`
-
-成功响应：
-
-- 返回 `PictureResponse`
-
-常见失败场景：
-
-- `400`：`fileUrl` 为空、URL 非法、协议不支持、远程文件不是图片、远程文件过大、下载失败
-- `401`：未登录或 JWT 无效
-- `403`：尝试更新他人的图片
-- `404`：目标图片不存在
-- `500`：临时文件失败、元数据提取失败、数据库失败、COS 上传失败
-
-## 图片详情接口
-
-### GET /picture/get/vo?id=<pictureId>
-
-- 完整路径：`GET /api/picture/get/vo?id=<pictureId>`
-- 鉴权：
-  - 审核通过的图片可匿名访问
-  - 未通过图片需要本人或管理员
-
-查询参数：
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `id` | string | 是 | 图片 ID |
-
-后端行为：
-
-- 查询未删除图片
-- 审核通过图片公开可见
-- 未通过图片仅本人或管理员可见
-- 成功访问时会把 `viewCount + 1`
-- 返回里会补 `user` 创建人摘要
-
-### GET /picture/:id
-
-这是 `/picture/get/vo` 的路径版别名，行为与返回结构一致，也会增加浏览数。
-
-### GET /picture/get?id=<pictureId>
-
-- 完整路径：`GET /api/picture/get?id=<pictureId>`
-- 鉴权：仅管理员
-
-说明：
-
-- 返回结构仍是 `PictureResponse`
-- 会补 `user` 创建人摘要，字段取当前用户表中的最新信息
-- 不增加浏览数
-
-## 图片删除接口
-
-### POST /picture/delete
-
-- 完整路径：`POST /api/picture/delete`
-- Content-Type：`application/json`
-- 鉴权：需要
-
-请求体：
-
-```json
-{
-  "id": "1921565896585154562"
-}
-```
-
-说明：
-
-- `id` 支持字符串，也兼容数字；前端建议始终传字符串
-- 只有图片所有者或管理员可以删除
-- 删除采用逻辑删除，接口成功后图片不会再出现在查询结果中
-- 当图片地址属于当前 COS Host 且服务端本地已配置 COS 密钥时，会同步删除远端对象
-
-成功响应：
+| `userEmail` | `string` | 是 | 邮箱 |
+| `userPassword` | `string` | 是 | 密码 |
+| `userCheckPassword` | `string` | 是 | 二次确认密码 |
+
+**成功返回**
 
 ```json
 {
   "code": 200,
   "message": "成功",
   "data": {
-    "id": "1921565896585154562"
+    "id": "12"
   }
 }
 ```
 
-## 图片审核接口
+**后端行为**
 
-### POST /picture/review
+1. 两次密码必须一致
+2. 邮箱不能重复
+3. 注册成功后默认：
+   - `userName = "用户"`
+   - `userRole = "user"`
+4. 返回新用户 ID
 
-- 完整路径：`POST /api/picture/review`
-- Content-Type：`application/json`
-- 鉴权：仅管理员
+**常见失败**
 
-请求体：
+| 场景 | code | message |
+| --- | --- | --- |
+| 两次密码不一致 | `400` | `两次输入的密码不一致` |
+| 邮箱已注册 | `409` | `邮箱已注册` |
+| 数据库异常 | `500` | `数据库查询异常` |
+
+---
+
+### 5.3 获取用户详情
+
+**接口**
+
+```http
+POST /api/user/get/detail
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+获取用户详情及该用户作品统计。
+
+**请求体**
+
+三种常用方式：
+
+1. 查询当前登录用户：
+
+```json
+{}
+```
+
+2. 按用户 ID 查询：
 
 ```json
 {
-  "id": "1921565896585154562",
-  "reviewStatus": 2,
-  "reviewMessage": "图片内容不符合要求"
+  "id": "1"
 }
 ```
 
-规则：
+3. 按邮箱查询：
 
-- `id` 支持字符串，也兼容数字；前端建议始终传字符串
-- `reviewStatus` 只能是：
-  - `1`：通过
-  - `2`：拒绝
-- 当 `reviewStatus = 2` 时，`reviewMessage.trim()` 不能为空
-- 返回管理员原始图片结构，不补 `user`
-- 不增加浏览数
+```json
+{
+  "userEmail": "test@example.com"
+}
+```
 
-常见失败场景：
+**字段说明**
 
-- `400`：`id` 非法、`reviewStatus` 非法、拒绝但 `reviewMessage` 为空
-- `401`：未登录或 JWT 无效
-- `403`：非管理员
-- `404`：图片不存在
-- `500`：数据库失败
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | `string` | 否 | 指定用户 ID，必须为正整数串 |
+| `userEmail` | `string` | 否 | 指定用户邮箱 |
 
-## 图片分页列表接口
+**查询优先级**
 
-### POST /picture/list/page/vo
+1. 如果传了 `id`，优先按 `id` 查询
+2. 否则如果传了 `userEmail`，按邮箱查询
+3. 如果都不传，默认返回当前登录用户
 
-- 完整路径：`POST /api/picture/list/page/vo`
-- Content-Type：`application/json`
-- 鉴权：无
+**成功返回**
 
-业务列表只返回：
+```json
+{
+  "code": 200,
+  "message": "成功",
+  "data": {
+    "id": "1",
+    "userName": "用户",
+    "userEmail": "test@example.com",
+    "userAvatar": "",
+    "userProfile": "",
+    "userRole": "user",
+    "createTime": "2026-04-23 10:00:00",
+    "updateTime": "2026-04-23 10:00:00",
+    "pictureCount": 12,
+    "approvedPictureCount": 10,
+    "pendingPictureCount": 1,
+    "rejectedPictureCount": 1
+  }
+}
+```
 
-- `isDelete = 0`
-- `reviewStatus = 1`
+**后端行为**
 
-请求体示例：
+1. 必须登录
+2. 只返回未删除用户
+3. `pictureCount` 等统计只统计该用户未删除作品
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| `id` 非法 | `400` | `id 必须是正整数` |
+| 用户不存在 | `404` | `用户不存在` |
+
+---
+
+### 5.4 修改自己的资料
+
+**接口**
+
+```http
+POST /api/user/update
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+当前登录用户修改自己的资料。
+
+**请求体**
+
+```json
+{
+  "id": "1",
+  "userName": "新的昵称",
+  "userEmail": "new@example.com",
+  "userPassword": "new-password",
+  "userAvatar": "https://cdn.example.com/avatar.jpg",
+  "userProfile": "新的简介"
+}
+```
+
+**字段说明**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | `string` | 是 | 必须等于当前登录用户 ID |
+| `userName` | `string` | 否 | 昵称，长度不能超过 256 个字符 |
+| `userEmail` | `string` | 否 | 新邮箱，不能与其他未删除用户重复 |
+| `userPassword` | `string` | 否 | 新密码，后端会重新加密 |
+| `userAvatar` | `string` | 否 | 头像地址，长度不能超过 1024 |
+| `userProfile` | `string` | 否 | 个人简介，长度不能超过 512 个字符 |
+
+**成功返回**
+
+返回更新后的 `DetailUserResponse`。
+
+**后端行为**
+
+1. `id` 必须是当前登录用户自己
+2. 至少要更新一个字段
+3. 密码字段如果有值，会被重新加密保存
+4. 更新完成后会返回最新的用户统计
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 修改他人资料 | `403` | `只能修改自己的信息` |
+| 未传任何可更新字段 | `400` | `至少更新一个字段` |
+| 邮箱冲突 | `409` | `邮箱已注册` |
+
+**前端注意**
+
+1. 这里不是“按 token 自动识别更新自己”，而是显式要求传 `id`
+2. 前端不要把别人的 `id` 直接传到这里
+
+---
+
+### 5.5 管理员修改用户资料
+
+**接口**
+
+```http
+POST /api/admin/user/update
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+管理员修改任意用户资料，并且可以改用户角色。
+
+**权限要求**
+
+必须是管理员账号。
+
+**请求体**
+
+```json
+{
+  "id": "2",
+  "userName": "管理员修改后的昵称",
+  "userEmail": "updated@example.com",
+  "userPassword": "new-password",
+  "userAvatar": "https://cdn.example.com/avatar.jpg",
+  "userProfile": "管理员修改后的简介",
+  "userRole": "admin"
+}
+```
+
+**字段说明**
+
+和普通用户更新基本一致，额外多一个：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `userRole` | `string` | 否 | 只能是 `user` 或 `admin` |
+
+**成功返回**
+
+返回更新后的 `DetailUserResponse`。
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 非管理员 | `403` | `仅管理员可访问` |
+| 用户不存在 | `404` | `用户不存在` |
+| 角色非法 | `400` | `userRole 只能是 user 或 admin` |
+
+---
+
+### 5.6 管理员获取图片审核列表
+
+**接口**
+
+```http
+POST /api/admin/picture/list
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+管理员分页获取图片审核列表。这个接口服务于审核页，默认返回待审核图片，也支持查已通过、已拒绝和全部状态。
+
+**权限要求**
+
+必须是管理员账号。
+
+**请求体示例**
+
+默认待审核：
 
 ```json
 {
   "pageNum": 1,
-  "pageSize": 10,
-  "id": "1921565896585154562",
-  "name": "cover",
-  "introduction": "summer",
-  "category": "travel",
-  "tags": ["sea"],
-  "userId": "1921565896585154562",
-  "searchText": "trip"
+  "pageSize": 20,
+  "compressPictureType": {
+    "compressType": 1
+  }
 }
 ```
 
-支持的主要过滤字段：
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `pageNum` | number | 默认 `1` |
-| `pageSize` | number | 默认 `10`，最大 `20` |
-| `id` | string | 图片 ID |
-| `name` | string | 图片名称，模糊匹配 |
-| `introduction` | string | 简介，模糊匹配 |
-| `category` | string | 分类，精确匹配 |
-| `tags` | string[] | 每个 tag 都按 `like` 过滤 |
-| `picSize` | number | 图片大小 |
-| `picWidth` | number | 宽度 |
-| `picHeight` | number | 高度 |
-| `picScale` | number | 宽高比 |
-| `picFormat` | string | 图片格式 |
-| `userId` | string | 创建人 ID |
-| `editTimeStart` | string | 起始时间，支持 `yyyy-MM-dd` 或 `yyyy-MM-dd HH:mm:ss` |
-| `editTimeEnd` | string | 结束时间，支持 `yyyy-MM-dd` 或 `yyyy-MM-dd HH:mm:ss` |
-| `searchText` | string | 同时模糊匹配 `name/introduction` |
-
-成功响应：
-
-- 返回 `PicturePageResponse`
-- 业务列表会补 `list[].user`
-
-### POST /picture/my/list/page
-
-- 完整路径：`POST /api/picture/my/list/page`
-- Content-Type：`application/json`
-- 鉴权：需要
-
-说明：
-
-- 返回当前登录用户自己的作品分页
-- 后端会忽略前端传入的 `userId`，强制改成当前登录用户 ID
-- 与公开业务分页相比：
-  - 会查询当前用户全部未删除作品
-  - 支持按 `reviewStatus` 过滤自己的待审核、已通过、已拒绝作品
-  - 返回里会补 `list[].user`
-
-请求体示例：
+查看已通过：
 
 ```json
 {
+  "reviewStatus": 1,
   "pageNum": 1,
-  "pageSize": 10,
-  "reviewStatus": 0,
-  "searchText": "旅行"
+  "pageSize": 20
 }
 ```
 
-支持的主要过滤字段：
+查看全部状态：
+
+```json
+{
+  "reviewStatus": -1,
+  "pageNum": 1,
+  "pageSize": 20
+}
+```
+
+**可用筛选字段**
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `pageNum` | number | 默认 `1` |
-| `pageSize` | number | 默认 `10`，最大 `20` |
-| `id` | string | 图片 ID |
-| `name` | string | 图片名称，模糊匹配 |
-| `introduction` | string | 简介，模糊匹配 |
-| `category` | string | 分类，精确匹配 |
-| `tags` | string[] | 每个 tag 都按 `like` 过滤 |
-| `picSize` | number | 图片大小 |
-| `picWidth` | number | 宽度 |
-| `picHeight` | number | 高度 |
-| `picScale` | number | 宽高比 |
-| `picFormat` | string | 图片格式 |
-| `reviewStatus` | number | `0 = 待审核`，`1 = 已通过`，`2 = 已拒绝` |
-| `reviewMessage` | string | 审核说明，模糊匹配 |
-| `reviewerId` | string | 审核人 ID |
-| `editTimeStart` | string | 起始时间，支持 `yyyy-MM-dd` 或 `yyyy-MM-dd HH:mm:ss` |
-| `editTimeEnd` | string | 结束时间，支持 `yyyy-MM-dd` 或 `yyyy-MM-dd HH:mm:ss` |
-| `searchText` | string | 同时模糊匹配 `name/introduction` |
+| `id` | `string` | 图片 ID |
+| `name` | `string` | 图片名称模糊匹配 |
+| `category` | `string` | 分类精确匹配 |
+| `tags` | `string[]` | 标签模糊匹配，可传多个 |
+| `picSize` | `number` | 图片大小精确匹配 |
+| `picWidth` | `number` | 宽度精确匹配 |
+| `picHeight` | `number` | 高度精确匹配 |
+| `picScale` | `number` | 宽高比精确匹配 |
+| `picFormat` | `string` | 格式精确匹配 |
+| `userId` | `string` | 上传者用户 ID |
+| `reviewStatus` | `number` | `0` 待审核，`1` 通过，`2` 拒绝，`-1` 全部状态 |
+| `reviewMessage` | `string` | 审核说明模糊匹配 |
+| `reviewerId` | `string` | 审核人用户 ID |
+| `editTimeStart` | `string` | 编辑时间起点，支持 `YYYY-MM-DD` 或 `YYYY-MM-DD HH:mm:ss` |
+| `editTimeEnd` | `string` | 编辑时间终点，支持 `YYYY-MM-DD` 或 `YYYY-MM-DD HH:mm:ss` |
+| `searchText` | `string` | 同时匹配 `name` 和 `introduction` |
+| `compressPictureType` | `object` | 缩略图策略 |
+| `pageNum` | `number` | 页码，默认 `1` |
+| `pageSize` | `number` | 每页数量，默认 `10`，最大 `300` |
 
-成功响应：
+**默认行为**
 
-- 返回 `PicturePageResponse`
+1. 不传 `reviewStatus` 时，后端默认按 `0` 处理，只返回待审核图片
+2. 传 `reviewStatus = -1` 时，不按审核状态过滤
+3. 列表只返回 `isDelete = 0` 的图片
 
-### POST /picture/list/page
+**成功返回**
 
-- 完整路径：`POST /api/picture/list/page`
-- Content-Type：`application/json`
-- 鉴权：仅管理员
+返回 `PicturePageResponse`，列表项为完整 `PictureResponse`。
 
-与业务分页相比，管理员分页还支持：
+**后端行为**
+
+1. 每条记录都带上传者 `user` 摘要，前端不需要再逐条请求用户信息
+2. 分页按 `id desc` 排序
+3. 支持审核页按状态、上传者、审核人、时间范围等条件筛选
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 非管理员 | `403` | `仅管理员可访问` |
+| `reviewStatus` 非法 | `400` | `reviewStatus 只能是 -1、0、1、2` |
+| `id/userId/reviewerId` 非法 | `400` | `字段必须是正整数` |
+| `pageSize > 300` | `400` | `pageSize 不能超过 300` |
+
+**前端注意**
+
+1. 审核页首屏建议不传 `reviewStatus`，直接拿默认待审核队列
+2. 审核历史可以传 `1`、`2` 或 `-1`
+3. 如果只是表格缩略图展示，建议继续传 `compressType=1`
+
+---
+
+### 5.7 获取公开图片列表
+
+**接口**
+
+```http
+POST /api/picture/list
+Content-Type: application/json
+```
+
+**作用**
+
+获取公开可见的图片分页列表。
+
+**重要说明**
+
+这个接口只返回：
+
+1. `isDelete = 0`
+2. `reviewStatus = 1`
+
+也就是说，无论前端有没有传审核状态，公开列表都只会返回已审核通过的图片。
+
+**请求体示例**
+
+```json
+{
+  "name": "海边",
+  "category": "风景",
+  "tags": ["日落", "海边"],
+  "userId": "1",
+  "searchText": "晚霞",
+  "editTimeStart": "2026-04-01",
+  "editTimeEnd": "2026-04-23",
+  "compressPictureType": {
+    "compressType": 1
+  },
+  "pageNum": 1,
+  "pageSize": 20
+}
+```
+
+**可用筛选字段**
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `string` | 图片 ID |
+| `name` | `string` | 图片名称模糊匹配 |
+| `category` | `string` | 分类精确匹配 |
+| `tags` | `string[]` | 标签模糊匹配，可传多个 |
+| `picSize` | `number` | 图片大小精确匹配 |
+| `picWidth` | `number` | 宽度精确匹配 |
+| `picHeight` | `number` | 高度精确匹配 |
+| `picScale` | `number` | 宽高比精确匹配 |
+| `picFormat` | `string` | 格式精确匹配 |
+| `userId` | `string` | 上传者 ID |
+| `searchText` | `string` | 同时匹配 `name` 和 `introduction` |
+| `editTimeStart` | `string` | 编辑时间起点，支持 `YYYY-MM-DD` 或 `YYYY-MM-DD HH:mm:ss` |
+| `editTimeEnd` | `string` | 编辑时间终点，支持 `YYYY-MM-DD` 或 `YYYY-MM-DD HH:mm:ss` |
+| `compressPictureType` | `object` | 缩略图策略 |
+| `pageNum` | `number` | 页码，默认 `1` |
+| `pageSize` | `number` | 每页数量，默认 `10`，最大 `300` |
+
+**无效或无意义字段**
+
+以下字段虽然在请求结构里存在，但在公开列表接口里不会生效：
 
 - `reviewStatus`
 - `reviewMessage`
 - `reviewerId`
 
-同时也会补 `list[].user`，字段取当前用户表中的最新信息。
+原因是公开列表接口会强制只查 `reviewStatus=1`。
 
-## 首页轮播接口
-
-### GET /picture/home/carousel
-
-- 完整路径：`GET /api/picture/home/carousel`
-- 鉴权：无
-
-后端行为：
-
-- 只返回已通过、未删除图片
-- 按 `viewCount desc, id desc` 排序
-- 最多返回 `6` 条
-- 返回里会补 `user`
-
-成功响应：
+**成功返回**
 
 ```json
 {
   "code": 200,
   "message": "成功",
   "data": {
-    "list": []
+    "pageNum": 1,
+    "pageSize": 20,
+    "total": 128,
+    "list": [
+      {
+        "id": "101",
+        "url": "https://...",
+        "thumbnailUrl": "https://...",
+        "user": {
+          "id": "1",
+          "userName": "张三",
+          "userAvatar": "https://...",
+          "userProfile": "",
+          "userRole": "user"
+        }
+      }
+    ]
   }
 }
 ```
 
-## TypeScript 类型建议
+**后端行为**
 
-```ts
-export type SnowflakeId = string;
-export type ReviewStatus = 0 | 1 | 2;
+1. 分页按 `id desc` 排序
+2. 返回值中的 `user` 已经带上传者摘要，不需要前端再逐条请求用户信息
+3. 空结果时返回：
+   - `total = 0`
+   - `list = []`
 
-export interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
+**常见失败**
 
-export interface UserSummary {
-  id: SnowflakeId;
-  userName: string;
-  userAvatar: string;
-  userProfile: string;
-  userRole: string;
-}
+| 场景 | code | message |
+| --- | --- | --- |
+| `id` 非法 | `400` | `id 必须是正整数` |
+| `userId` 非法 | `400` | `userId 必须是正整数` |
+| `pageSize > 300` | `400` | `pageSize 不能超过 300` |
+| 时间格式错误 | `400` | `editTimeStart 格式错误` / `editTimeEnd 格式错误` |
+| 压缩参数非法 | `400` | `compressType 只能是 0、1、2` |
 
-export interface UserProfileResponse {
-  id: SnowflakeId;
-  userName: string;
-  userAvatar: string;
-  userProfile: string;
-  userRole: string;
-  createTime: string;
-  updateTime: string;
-  pictureCount: number;
-  approvedPictureCount: number;
-  pendingPictureCount: number;
-  rejectedPictureCount: number;
-}
+---
 
-export interface PictureResponse {
-  id: SnowflakeId;
-  url: string;
-  name: string;
-  introduction?: string;
-  category?: string;
-  tags?: string[];
-  picSize?: number;
-  picWidth?: number;
-  picHeight?: number;
-  picScale?: number;
-  picFormat?: string;
-  userId: SnowflakeId;
-  user?: UserSummary;
-  createTime: string;
-  editTime: string;
-  updateTime: string;
-  reviewStatus: ReviewStatus;
-  reviewMessage?: string;
-  reviewerId?: SnowflakeId;
-  reviewTime?: string;
-  thumbnailUrl?: string;
-  picColor?: string;
-  viewCount: number;
-  likeCount: number;
-}
+### 5.8 获取单张图片详情
 
-export interface PicturePageResponse {
-  pageNum: number;
-  pageSize: number;
-  total: number;
-  list: PictureResponse[];
+**接口**
+
+```http
+POST /api/picture/vo
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+获取单张图片详情，通常用于预览页。
+
+**请求体**
+
+```json
+{
+  "id": "101",
+  "compressPictureType": {
+    "compressType": 1
+  }
 }
 ```
 
-## 前端接入建议
+**字段说明**
 
-- 所有 ID 在前端统一使用 `string`
-- 不要把雪花 ID 存成 JS `number`
-- 请求里即使后端兼容数字，前端仍建议始终传字符串
-- 用户详情页可配合：
-  - `GET /user/get/vo`
-  - `GET /user/my`
-  - `POST/PATCH /user/my`
-  - `POST /picture/my/list/page`
-- `GET /picture/get/vo` 和 `GET /picture/:id` 会增加浏览数，不要做高频轮询
-- 图片详情页如果只是后台审核使用，优先调用管理员接口 `/picture/get`
-- 上传前请先确认 COS 配置已在服务端配置完成，否则上传会失败
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | `string` | 是 | 图片 ID |
+| `compressPictureType` | `object` | 否 | 控制 `thumbnailUrl` 的返回形式 |
+
+**访问权限规则**
+
+虽然这个接口本身要求登录，但图片内容是否能看，还要再走业务判断：
+
+1. 审核通过的图片，任何已登录用户都能看
+2. 未审核通过的图片，只有：
+   - 图片拥有者
+   - 管理员
+   可以看
+
+**成功返回**
+
+返回 `PictureResponse`。
+
+**副作用**
+
+每成功查看一次，后端会自动把该图片的 `viewCount + 1`。
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 图片不存在 | `404` | `图片不存在` |
+| 图片暂不可查看 | `403` | `当前图片暂不可查看` |
+
+**前端注意**
+
+1. 这个接口不是公开接口，必须带 token
+2. 如果前端要做预览访问统计，这个接口已经会自动累加浏览数，不要重复单独记一次
+
+---
+
+### 5.9 本地文件上传图片
+
+**接口**
+
+```http
+POST /api/picture/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**作用**
+
+上传本地图片文件。也支持通过传 `id` 更新已有图片。
+
+**表单字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `file` | `file` | 是 | 图片文件 |
+| `id` | `string` | 否 | 如果传入，表示更新已有图片 |
+| `picName` | `string` | 否 | 图片名；不传时取原始文件名 |
+| `introduction` | `string` | 否 | 简介 |
+| `category` | `string` | 否 | 分类 |
+| `tags` | `string` | 否 | 支持两种格式：JSON 数组字符串或逗号分隔字符串 |
+
+`tags` 示例：
+
+```text
+["日落","海边"]
+```
+
+或者：
+
+```text
+日落,海边
+```
+
+**文件限制**
+
+| 项目 | 限制 |
+| --- | --- |
+| 文件类型 | `jpg` / `jpeg` / `png` / `webp` |
+| 文件大小 | 最大 `30MB` |
+
+**成功返回**
+
+返回 `PictureResponse`。
+
+**创建与更新行为**
+
+1. 不传 `id`：新建图片
+2. 传 `id`：更新已有图片
+3. 更新已有图片时，只有图片上传者本人或管理员可以操作
+4. 更新时如果 `introduction/category/tags` 未传，后端会沿用旧值
+5. 更新时图片文件本身会被新文件替换
+
+**审核状态行为**
+
+1. 普通用户上传或更新图片：
+   - `reviewStatus = 0`
+   - `reviewMessage = "待审核"`
+2. 管理员上传或更新图片：
+   - 自动通过
+   - `reviewStatus = 1`
+   - `reviewMessage = "管理员上传自动通过"`
+
+**后端自动补充信息**
+
+后端会自动提取并返回：
+
+1. 图片大小 `picSize`
+2. 宽高 `picWidth / picHeight`
+3. 宽高比 `picScale`
+4. 图片格式 `picFormat`
+5. 主色 `picColor`，如果可提取
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 缺少文件字段 | `400` | `缺少文件字段 file` |
+| 文件类型非法 | `400` | `仅支持 jpg、jpeg、png、webp 图片` |
+| 文件过大 | `400` | `图片大小不能超过 30MB` |
+| `id` 非法 | `400` | `id 必须是正整数` |
+| 更新别人的图片 | `403` | `无权修改该图片` |
+| 图片不存在 | `404` | `图片不存在` |
+| COS 未配置 | `500` | `COS 配置不完整，请先配置本地密钥` |
+
+**前端注意**
+
+1. 这是 `multipart/form-data`，不是 JSON
+2. 更新图片时前端要自己决定是否传 `id`
+3. 如果普通用户修改图片，前端要预期该图片会重新进入待审核状态
+
+---
+
+### 5.10 通过 URL 上传图片
+
+**接口**
+
+```http
+POST /api/picture/upload/url
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+根据远程图片 URL 下载后再上传到本系统。也支持通过传 `id` 更新已有图片。
+
+**请求体**
+
+```json
+{
+  "id": "101",
+  "fileUrl": "https://example.com/test.jpg",
+  "picName": "网络图片",
+  "introduction": "来自远程地址",
+  "category": "风景",
+  "tags": ["远程", "测试"]
+}
+```
+
+**字段说明**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | `string` | 否 | 更新已有图片时传 |
+| `fileUrl` | `string` | 是 | 远程图片地址 |
+| `picName` | `string` | 否 | 图片名 |
+| `introduction` | `string` | 否 | 简介 |
+| `category` | `string` | 否 | 分类 |
+| `tags` | `string[]` | 否 | 标签数组 |
+
+**远程 URL 限制**
+
+| 项目 | 限制 |
+| --- | --- |
+| 协议 | 只支持 `http` / `https` |
+| 远程文件类型 | 必须是图片 |
+| 远程文件大小 | 最大 `10MB` |
+
+**后端行为**
+
+1. 会先尝试 `HEAD` 请求检查类型和大小
+2. 再发起 `GET` 下载图片
+3. 下载成功后按普通上传逻辑处理
+4. 新建/更新、审核状态、权限控制与本地文件上传一致
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| `fileUrl` 为空 | `400` | `fileUrl 不能为空` |
+| URL 非法 | `400` | `fileUrl 必须是合法 URL` |
+| 协议非法 | `400` | `fileUrl 仅支持 http 或 https` |
+| 不是图片 | `400` | `远程文件不是图片` |
+| 远程文件过大 | `400` | `URL 图片大小不能超过 10MB` |
+| 下载失败 | `400` | `下载远程图片失败` |
+
+---
+
+### 5.11 删除图片
+
+**接口**
+
+```http
+POST /api/picture/delete
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+删除图片。只有图片上传者本人或管理员可以删除。
+
+**请求体**
+
+```json
+{
+  "id": "101"
+}
+```
+
+**成功返回**
+
+```json
+{
+  "code": 200,
+  "message": "成功"
+}
+```
+
+**后端行为**
+
+1. 逻辑删除：
+   - 数据库中将 `isDelete = 1`
+2. 如果图片地址属于当前 COS Host，会尝试同时删除 COS 文件
+3. 如果 COS 文件不存在，不视为失败
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| `id` 非法 | `400` | `id 必须是正整数` |
+| 图片不存在 | `404` | `图片不存在` |
+| 非上传者也非管理员 | `403` | `无权删除该图片` |
+
+---
+
+### 5.12 管理员审核图片
+
+**接口**
+
+```http
+POST /api/picture/review
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**作用**
+
+管理员审核图片，决定通过或拒绝。
+
+**权限要求**
+
+必须是管理员。
+
+**请求体**
+
+审核通过：
+
+```json
+{
+  "id": "101",
+  "reviewStatus": 1
+}
+```
+
+审核拒绝：
+
+```json
+{
+  "id": "101",
+  "reviewStatus": 2,
+  "reviewMessage": "图片内容不符合规范"
+}
+```
+
+**字段说明**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `id` | `string` | 是 | 图片 ID |
+| `reviewStatus` | `number` | 是 | 只能是 `1` 或 `2` |
+| `reviewMessage` | `string` | 否 | 当 `reviewStatus=2` 时必填 |
+
+**成功返回**
+
+返回审核后的完整 `PictureResponse`。
+
+**后端行为**
+
+1. 记录审核状态
+2. 记录审核说明
+3. 记录审核人 `reviewerId`
+4. 记录审核时间 `reviewTime`
+5. 返回值中会附带上传者 `user` 摘要
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 非管理员 | `403` | `仅管理员可访问` |
+| 图片不存在 | `404` | `图片不存在` |
+| `reviewStatus` 非法 | `400` | `reviewStatus 只能是 1 或 2` |
+| 拒绝但未传原因 | `400` | `reviewMessage 不能为空` |
+
+## 6. 前端调用建议
+
+### 6.1 登录态接口统一封装
+
+建议前端统一封装请求头：
+
+```http
+Authorization: Bearer <token>
+```
+
+### 6.2 ID 全部按字符串处理
+
+前端状态管理、组件 props、路由参数、表单值都按字符串存储和传递。
+
+### 6.3 图片展示优先使用 `thumbnailUrl`
+
+原因：
+
+1. 后端会根据 `compressPictureType` 动态返回更适合列表/预览的图片地址
+2. `url` 是原图地址，直接展示在列表可能浪费带宽
+
+推荐：
+
+1. 列表页：优先传 `compressType=1`
+2. 需要固定裁切卡片时：传 `compressType=2` 并附带裁切宽高
+3. 原图预览或下载：使用 `url`
+
+### 6.4 用户修改与管理员修改分开处理
+
+不要混用：
+
+1. 普通用户修改自己：`/api/user/update`
+2. 管理员修改别人：`/api/admin/user/update`
+3. 管理员审核列表：`/api/admin/picture/list`
+
+### 6.5 图片编辑要注意审核状态变化
+
+普通用户重新上传或更新图片后，会重新进入待审核状态。前端如果有作品管理页，需要把这个状态变化展示出来。
+
+### 6.6 列表接口不要依赖 `reviewStatus` 入参
+
+公开列表已经固定只返回审核通过图片，前端不需要尝试用这个接口查待审核或拒绝图片。
+
+## 7. 前端常用请求示例
+
+### 7.1 登录
+
+```ts
+await request.post("/api/user/login", {
+  userEmail: "test@example.com",
+  userPassword: "123456",
+});
+```
+
+### 7.2 获取当前用户详情
+
+```ts
+await request.post(
+  "/api/user/get/detail",
+  {},
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+```
+
+### 7.3 获取管理员审核列表
+
+```ts
+await request.post(
+  "/api/admin/picture/list",
+  {
+    pageNum: 1,
+    pageSize: 20,
+    compressPictureType: {
+      compressType: 1,
+    },
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+    },
+  }
+);
+```
+
+### 7.4 获取公开图片列表
+
+```ts
+await request.post("/api/picture/list", {
+  searchText: "海边",
+  compressPictureType: {
+    compressType: 1,
+  },
+  pageNum: 1,
+  pageSize: 20,
+});
+```
+
+### 7.5 获取图片详情
+
+```ts
+await request.post(
+  "/api/picture/vo",
+  {
+    id: "101",
+    compressPictureType: {
+      compressType: 1,
+    },
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+```
+
+### 7.6 本地文件上传
+
+```ts
+const formData = new FormData();
+formData.append("file", file);
+formData.append("picName", "海边日落");
+formData.append("category", "风景");
+formData.append("tags", JSON.stringify(["日落", "海边"]));
+
+await request.post("/api/picture/upload", formData, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "multipart/form-data",
+  },
+});
+```
+
+### 7.7 URL 上传
+
+```ts
+await request.post(
+  "/api/picture/upload/url",
+  {
+    fileUrl: "https://example.com/test.jpg",
+    picName: "网络图片",
+    tags: ["远程", "测试"],
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+```
+
+### 7.8 删除图片
+
+```ts
+await request.post(
+  "/api/picture/delete",
+  {
+    id: "101",
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+```
+
+### 7.9 管理员审核图片
+
+```ts
+await request.post(
+  "/api/picture/review",
+  {
+    id: "101",
+    reviewStatus: 2,
+    reviewMessage: "图片内容不符合规范",
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+    },
+  }
+);
+```
+
+## 8. 最后确认
+
+如果前端对以下内容还需要单独拆分版文档，可以继续基于本文档拆：
+
+1. 仅用户接口文档
+2. 仅图片接口文档
+3. 仅管理员接口文档
+4. TypeScript 类型定义版
+5. Swagger 风格表格版

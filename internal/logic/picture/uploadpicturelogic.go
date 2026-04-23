@@ -4,6 +4,7 @@ import (
 	"context"
 	"mime/multipart"
 
+	"photo-album/internal/common/response"
 	"photo-album/internal/svc"
 	"photo-album/internal/types"
 
@@ -25,6 +26,10 @@ func NewUploadPictureLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upl
 }
 
 func (l *UploadPictureLogic) UploadPicture(file multipart.File, header *multipart.FileHeader, req *types.PictureUploadRequest, authorization string) (*types.PictureResponse, error) {
+	if req == nil {
+		return nil, response.BadRequest("请求体不能为空")
+	}
+
 	loginUser, err := loadRequiredLoginUser(l.ctx, l.svcCtx, authorization)
 	if err != nil {
 		return nil, err
@@ -37,7 +42,7 @@ func (l *UploadPictureLogic) UploadPicture(file multipart.File, header *multipar
 	defer cleanup()
 
 	return storePicture(l.ctx, l.svcCtx, tempPath, originalFilename, pictureWriteRequest{
-		ID:           req.Id.Int64(),
+		ID:           req.Id,
 		PicName:      req.PicName,
 		Introduction: req.Introduction,
 		Category:     req.Category,

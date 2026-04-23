@@ -47,6 +47,10 @@ func ExtractUserIDFromBearerToken(authorization, secret string) (int64, error) {
 }
 
 func LoadRequiredLoginUser(ctx context.Context, svcCtx *svc.ServiceContext, authorization string) (*model.User, error) {
+	if loginUser, ok := LoginUserFromContext(ctx); ok {
+		return loginUser, nil
+	}
+
 	userID, err := ExtractUserIDFromBearerToken(authorization, svcCtx.Config.Auth.AccessSecret)
 	if err != nil {
 		return nil, commonresponse.Unauthorized("请先登录")
@@ -58,6 +62,18 @@ func LoadRequiredLoginUser(ctx context.Context, svcCtx *svc.ServiceContext, auth
 			return nil, commonresponse.Unauthorized("登录用户不存在")
 		}
 		return nil, commonresponse.InternalServerError("查询登录用户失败")
+	}
+
+	return loginUser, nil
+}
+
+func LoadRequiredAdminUser(ctx context.Context, svcCtx *svc.ServiceContext, authorization string) (*model.User, error) {
+	loginUser, err := LoadRequiredLoginUser(ctx, svcCtx, authorization)
+	if err != nil {
+		return nil, err
+	}
+	if loginUser.UserRole != "admin" {
+		return nil, commonresponse.Forbidden("仅管理员可访问")
 	}
 
 	return loginUser, nil

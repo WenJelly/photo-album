@@ -2,6 +2,7 @@ package picture
 
 import (
 	"net/http"
+	"strconv"
 
 	"photo-album/internal/common/response"
 	logicpicture "photo-album/internal/logic/picture"
@@ -36,11 +37,11 @@ func UploadPictureHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 }
 
 func buildUploadRequestFromForm(r *http.Request) (*types.PictureUploadRequest, error) {
-	var id types.SnowflakeID
+	var id int64
 
 	rawID := r.FormValue("id")
 	if rawID != "" {
-		parsedID, err := types.ParseSnowflakeID(rawID)
+		parsedID, err := strconv.ParseInt(rawID, 10, 64)
 		if err != nil || parsedID <= 0 {
 			return nil, response.BadRequest("id 必须是正整数")
 		}

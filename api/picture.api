@@ -2,149 +2,61 @@ syntax = "v1"
 
 info (
 	title:   "Picture API"
-	desc:    "Picture upload and retrieval service"
-	author:  "Developer"
-	version: "v1.0"
+	desc:    "Picture Service"
+	author:  "wenguodong"
+	version: "v1.1"
 )
 
-type (
-	PictureIDQueryRequest {
-		Id string `form:"id"`
-	}
-
-	PictureGetRequest {
-		Id string `path:"id"`
-	}
-
-	PictureUploadByUrlRequest {
-		Id           string   `json:"id,optional"`
-		FileUrl      string   `json:"fileUrl"`
-		PicName      string   `json:"picName,optional"`
-		Introduction string   `json:"introduction,optional"`
-		Category     string   `json:"category,optional"`
-		Tags         []string `json:"tags,optional"`
-	}
-
-	PictureReviewRequest {
-		Id            string `json:"id"`
-		ReviewStatus  int64  `json:"reviewStatus"`
-		ReviewMessage string `json:"reviewMessage,optional"`
-	}
-
-	PictureDeleteRequest {
-		Id string `json:"id"`
-	}
-
-	PictureListRequest {
-		PageNum       int64    `json:"pageNum,optional"`
-		PageSize      int64    `json:"pageSize,optional"`
-		Id            string   `json:"id,optional"`
-		Name          string   `json:"name,optional"`
-		Introduction  string   `json:"introduction,optional"`
-		Category      string   `json:"category,optional"`
-		Tags          []string `json:"tags,optional"`
-		PicSize       int64    `json:"picSize,optional"`
-		PicWidth      int64    `json:"picWidth,optional"`
-		PicHeight     int64    `json:"picHeight,optional"`
-		PicScale      float64  `json:"picScale,optional"`
-		PicFormat     string   `json:"picFormat,optional"`
-		UserId        string   `json:"userId,optional"`
-		ReviewStatus  int64    `json:"reviewStatus,optional"`
-		ReviewMessage string   `json:"reviewMessage,optional"`
-		ReviewerId    string   `json:"reviewerId,optional"`
-		EditTimeStart string   `json:"editTimeStart,optional"`
-		EditTimeEnd   string   `json:"editTimeEnd,optional"`
-		SearchText    string   `json:"searchText,optional"`
-	}
-
-	UserSummary {
-		Id          string `json:"id"`
-		UserName    string `json:"userName"`
-		UserAvatar  string `json:"userAvatar"`
-		UserProfile string `json:"userProfile"`
-		UserRole    string `json:"userRole"`
-	}
-
-	PictureResponse {
-		Id            string      `json:"id"`
-		Url           string      `json:"url"`
-		Name          string      `json:"name"`
-		Introduction  string      `json:"introduction,optional"`
-		Category      string      `json:"category,optional"`
-		Tags          []string    `json:"tags,optional"`
-		PicSize       int64       `json:"picSize,optional"`
-		PicWidth      int64       `json:"picWidth,optional"`
-		PicHeight     int64       `json:"picHeight,optional"`
-		PicScale      float64     `json:"picScale,optional"`
-		PicFormat     string      `json:"picFormat,optional"`
-		UserId        string      `json:"userId"`
-		User          UserSummary `json:"user,optional"`
-		CreateTime    string      `json:"createTime"`
-		EditTime      string      `json:"editTime"`
-		UpdateTime    string      `json:"updateTime"`
-		ReviewStatus  int64       `json:"reviewStatus"`
-		ReviewMessage string      `json:"reviewMessage,optional"`
-		ReviewerId    string      `json:"reviewerId,optional"`
-		ReviewTime    string      `json:"reviewTime,optional"`
-		ThumbnailUrl  string      `json:"thumbnailUrl,optional"`
-		PicColor      string      `json:"picColor,optional"`
-		ViewCount     int64       `json:"viewCount"`
-		LikeCount     int64       `json:"likeCount"`
-	}
-
-	PicturePageResponse {
-		PageNum  int64             `json:"pageNum"`
-		PageSize int64             `json:"pageSize"`
-		Total    int64             `json:"total"`
-		List     []PictureResponse `json:"list"`
-	}
-
-	PictureCarouselResponse {
-		List []PictureResponse `json:"list"`
-	}
-
-	PictureDeleteResponse {
-		Id string `json:"id"`
-	}
-)
+import "picture_base.api"
+import "picture_manage.api"
+import "picture_upload.api"
 
 @server (
 	prefix: /api
 	group:  picture
 )
 service PictureCenter {
+	@doc "获取图片列表,返回时根据前端需要压缩类型填写ThumbnailUrl,后端数据库将不再存储该列"
+	@handler getPictureList
+	post /picture/list (QueryPictureRequest) returns (PicturePageResponse)
+}
+
+@server (
+	prefix: /api
+	group:  picture
+	jwt:    Auth
+)
+service PictureCenter {
+	@doc "获取单张图片信息,用于预览"
+	@handler getPictureVO
+	post /picture/vo (GetPictureRequest) returns (PictureResponse)
+
+	@doc "通过本地文件上传图片"
 	@handler UploadPicture
 	post /picture/upload returns (PictureResponse)
 
+	@doc "通过url上传图片"
 	@handler UploadPictureByUrl
 	post /picture/upload/url (PictureUploadByUrlRequest) returns (PictureResponse)
 
-	@handler GetPicture
-	get /picture/:id (PictureGetRequest) returns (PictureResponse)
-
-	@handler GetPictureVO
-	get /picture/get/vo (PictureIDQueryRequest) returns (PictureResponse)
-
-	@doc "图片管理员原始详情，返回最新创建人摘要"
-	@handler GetPictureAdmin
-	get /picture/get (PictureIDQueryRequest) returns (PictureResponse)
-
-	@handler ReviewPicture
-	post /picture/review (PictureReviewRequest) returns (PictureResponse)
-
+	@doc "删除图片,只有当前图片的上传者/管理员可以删除"
 	@handler DeletePicture
-	post /picture/delete (PictureDeleteRequest) returns (PictureDeleteResponse)
-
-	@handler ListPictureVO
-	post /picture/list/page/vo (PictureListRequest) returns (PicturePageResponse)
-
-	@handler ListMyPicture
-	post /picture/my/list/page (PictureListRequest) returns (PicturePageResponse)
-
-	@doc "图片管理员原始分页列表，返回最新创建人摘要"
-	@handler ListPicture
-	post /picture/list/page (PictureListRequest) returns (PicturePageResponse)
-
-	@handler HomeCarousel
-	get /picture/home/carousel returns (PictureCarouselResponse)
+	post /picture/delete (DeletePictureRequest)
 }
+
+@server (
+	prefix:     /api
+	group:      picture
+	jwt:        Auth
+	middleware: AdminCheck
+)
+service PictureCenter {
+	@doc "管理员获取图片列表"
+	@handler getAdminPictureList
+	post /admin/picture/list (AdminQueryPictureRequest) returns (PicturePageResponse)
+
+	@doc "管理员审核图片"
+	@handler ReviewPicture
+	post /picture/review (ReviewPictureRequest) returns (PictureResponse)
+}
+

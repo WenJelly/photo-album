@@ -11,20 +11,33 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	commonresponse "photo-album/internal/common/response"
 	"strings"
 	"time"
 
-	commonresponse "photo-album/internal/common/response"
 	"photo-album/internal/svc"
+	"photo-album/internal/types"
 )
 
-func buildStoredPictureURLs(host, objectKey string, size int64) (string, string) {
-	baseURL := buildObjectURL(host, objectKey)
+func buildPictureThumbnailURL(baseURL string, size int64, option types.CompressPictureType) (string, error) {
+	switch option.CompressType {
+	case 0:
+		return baseURL, nil
+	case 1:
+		return buildCurrentCompressedPictureURL(baseURL, size), nil
+	case 2:
+		return buildCenteredCropPictureURL(baseURL, option.CutWidth, option.CutHeight)
+	default:
+		return "", commonresponse.BadRequest("compressType 只能是 0、1、2")
+	}
+}
+
+func buildCurrentCompressedPictureURL(baseURL string, size int64) string {
 	if size > compressedImageThreshold {
-		return baseURL, buildCompressedThumbnailURL(baseURL, size)
+		return buildCompressedThumbnailURL(baseURL, size)
 	}
 
-	return baseURL, baseURL
+	return baseURL
 }
 
 func buildCompressedThumbnailURL(baseURL string, size int64) string {
@@ -47,6 +60,21 @@ func compressedThumbnailProfile(size int64) (maxEdge int, quality int) {
 	default:
 		return 2560, 85
 	}
+}
+
+func buildCenteredCropPictureURL(baseURL string, width, height int64) (string, error) {
+	if width <= 0 || height <= 0 {
+		return "", commonresponse.BadRequest("compressType=2 时 cutWidth 和 CutHeight 必须为正整数")
+	}
+
+	return fmt.Sprintf(
+		"%s?imageMogr2/thumbnail/%dx%d^>/gravity/center/crop/%dx%d/format/webp/ignore-error/1",
+		baseURL,
+		width,
+		height,
+		width,
+		height,
+	), nil
 }
 
 func buildObjectURL(host, objectKey string) string {

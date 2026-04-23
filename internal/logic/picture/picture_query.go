@@ -1,13 +1,12 @@
 package picture
 
 import (
-	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	commonresponse "photo-album/internal/common/response"
-	"photo-album/internal/svc"
 	"photo-album/internal/types"
 	"photo-album/model"
 )
@@ -15,7 +14,7 @@ import (
 const (
 	defaultPicturePageNum  = 1
 	defaultPicturePageSize = 10
-	maxPicturePageSize     = 20
+	maxPicturePageSize     = 300
 )
 
 func normalizePicturePage(pageNum, pageSize int64) (int64, int64, error) {
@@ -26,103 +25,170 @@ func normalizePicturePage(pageNum, pageSize int64) (int64, int64, error) {
 		pageSize = defaultPicturePageSize
 	}
 	if pageSize > maxPicturePageSize {
-		return 0, 0, commonresponse.BadRequest("pageSize 不能超过 20")
+		return 0, 0, commonresponse.BadRequest("pageSize 不能超过 300")
 	}
 
 	return pageNum, pageSize, nil
 }
 
-func buildPublicPictureListWhere(searchText string, tags []string) (string, []any) {
-	clauses := []string{"where `isDelete` = 0", "and `reviewStatus` = ?"}
-	args := []any{reviewStatusPass}
-
-	searchText = strings.TrimSpace(searchText)
-	if searchText != "" {
-		pattern := "%" + searchText + "%"
-		clauses = append(clauses, "and (`name` like ? or `introduction` like ?)")
-		args = append(args, pattern, pattern)
+func buildPictureListWhere(req *types.QueryPictureRequest, publicOnly bool) (string, []any, error) {
+	if req == nil {
+		return buildPictureListWhereInput(pictureListWhereInput{}, publicOnly)
 	}
 
-	for _, tag := range normalizeTags(tags) {
-		clauses = append(clauses, "and `tags` like ?")
-		args = append(args, "%"+tag+"%")
-	}
-
-	return strings.Join(clauses, " "), args
+	return buildPictureListWhereInput(
+		pictureListWhereInput{
+			id:            req.Id,
+			name:          req.Name,
+			category:      req.Category,
+			reviewStatus:  req.ReviewStatus,
+			tags:          req.Tags,
+			picSize:       req.PicSize,
+			picWidth:      req.PicWidth,
+			picHeight:     req.PicHeight,
+			picScale:      req.PicScale,
+			picFormat:     req.PicFormat,
+			userID:        req.UserId,
+			reviewMessage: req.ReviewMessage,
+			reviewerID:    req.ReviewerId,
+			editTimeStart: req.EditTimeStart,
+			editTimeEnd:   req.EditTimeEnd,
+			searchText:    req.SearchText,
+		},
+		publicOnly,
+	)
 }
 
-func buildPictureListWhere(req *types.PictureListRequest, publicOnly bool) (string, []any, error) {
+func buildAdminPictureListWhere(req *types.AdminQueryPictureRequest) (string, []any, error) {
+	if req == nil {
+		return buildPictureListWhereInput(pictureListWhereInput{}, false)
+	}
+	if req.ReviewStatus < -1 || req.ReviewStatus > reviewStatusReject {
+		return "", nil, commonresponse.BadRequest("reviewStatus 只能是 -1、0、1、2")
+	}
+
+	return buildPictureListWhereInput(
+		pictureListWhereInput{
+			id:            req.Id,
+			name:          req.Name,
+			category:      req.Category,
+			reviewStatus:  req.ReviewStatus,
+			tags:          req.Tags,
+			picSize:       req.PicSize,
+			picWidth:      req.PicWidth,
+			picHeight:     req.PicHeight,
+			picScale:      req.PicScale,
+			picFormat:     req.PicFormat,
+			userID:        req.UserId,
+			reviewMessage: req.ReviewMessage,
+			reviewerID:    req.ReviewerId,
+			editTimeStart: req.EditTimeStart,
+			editTimeEnd:   req.EditTimeEnd,
+			searchText:    req.SearchText,
+		},
+		false,
+	)
+}
+
+type pictureListWhereInput struct {
+	id            string
+	name          string
+	category      string
+	reviewStatus  int64
+	tags          []string
+	picSize       int64
+	picWidth      int64
+	picHeight     int64
+	picScale      float64
+	picFormat     string
+	userID        string
+	reviewMessage string
+	reviewerID    string
+	editTimeStart string
+	editTimeEnd   string
+	searchText    string
+}
+
+func buildPictureListWhereInput(input pictureListWhereInput, publicOnly bool) (string, []any, error) {
 	whereSQL, args := buildBasePictureListWhere(publicOnly)
 
-	if req == nil {
-		return whereSQL, args, nil
+	id, err := parseOptionalSnowflakeID(input.id, "id")
+	if err != nil {
+		return "", nil, err
+	}
+	if id > 0 {
+		whereSQL += " and `id` = ?"
+		args = append(args, id)
 	}
 
-	if req.Id > 0 {
-		whereSQL += " and `id` = ?"
-		args = append(args, req.Id.Int64())
-	}
-	if name := strings.TrimSpace(req.Name); name != "" {
+	if name := strings.TrimSpace(input.name); name != "" {
 		whereSQL += " and `name` like ?"
 		args = append(args, "%"+name+"%")
 	}
-	if introduction := strings.TrimSpace(req.Introduction); introduction != "" {
-		whereSQL += " and `introduction` like ?"
-		args = append(args, "%"+introduction+"%")
-	}
-	if category := strings.TrimSpace(req.Category); category != "" {
+	if category := strings.TrimSpace(input.category); category != "" {
 		whereSQL += " and `category` = ?"
 		args = append(args, category)
 	}
-	for _, tag := range normalizeTags(req.Tags) {
+	for _, tag := range normalizeTags(input.tags) {
 		whereSQL += " and `tags` like ?"
 		args = append(args, "%"+tag+"%")
 	}
-	if req.PicSize > 0 {
+	if input.picSize > 0 {
 		whereSQL += " and `picSize` = ?"
-		args = append(args, req.PicSize)
+		args = append(args, input.picSize)
 	}
-	if req.PicWidth > 0 {
+	if input.picWidth > 0 {
 		whereSQL += " and `picWidth` = ?"
-		args = append(args, req.PicWidth)
+		args = append(args, input.picWidth)
 	}
-	if req.PicHeight > 0 {
+	if input.picHeight > 0 {
 		whereSQL += " and `picHeight` = ?"
-		args = append(args, req.PicHeight)
+		args = append(args, input.picHeight)
 	}
-	if req.PicScale > 0 {
+	if input.picScale > 0 {
 		whereSQL += " and `picScale` = ?"
-		args = append(args, req.PicScale)
+		args = append(args, input.picScale)
 	}
-	if picFormat := strings.TrimSpace(req.PicFormat); picFormat != "" {
+	if picFormat := strings.TrimSpace(input.picFormat); picFormat != "" {
 		whereSQL += " and `picFormat` = ?"
 		args = append(args, picFormat)
 	}
-	if req.UserId > 0 {
+
+	userID, err := parseOptionalSnowflakeID(input.userID, "userId")
+	if err != nil {
+		return "", nil, err
+	}
+	if userID > 0 {
 		whereSQL += " and `userId` = ?"
-		args = append(args, req.UserId.Int64())
+		args = append(args, userID)
 	}
-	if !publicOnly && req.ReviewStatus != nil {
-		whereSQL += " and `reviewStatus` = ?"
-		args = append(args, *req.ReviewStatus)
-	}
+
 	if !publicOnly {
-		if reviewMessage := strings.TrimSpace(req.ReviewMessage); reviewMessage != "" {
+		if input.reviewStatus >= 0 {
+			whereSQL += " and `reviewStatus` = ?"
+			args = append(args, input.reviewStatus)
+		}
+		if reviewMessage := strings.TrimSpace(input.reviewMessage); reviewMessage != "" {
 			whereSQL += " and `reviewMessage` like ?"
 			args = append(args, "%"+reviewMessage+"%")
 		}
-		if req.ReviewerId > 0 {
+		reviewerID, err := parseOptionalSnowflakeID(input.reviewerID, "reviewerId")
+		if err != nil {
+			return "", nil, err
+		}
+		if reviewerID > 0 {
 			whereSQL += " and `reviewerId` = ?"
-			args = append(args, req.ReviewerId.Int64())
+			args = append(args, reviewerID)
 		}
 	}
-	if searchText := strings.TrimSpace(req.SearchText); searchText != "" {
+
+	if searchText := strings.TrimSpace(input.searchText); searchText != "" {
 		pattern := "%" + searchText + "%"
 		whereSQL += " and (`name` like ? or `introduction` like ?)"
 		args = append(args, pattern, pattern)
 	}
 
-	startTime, endTime, err := parseEditTimeRange(req.EditTimeStart, req.EditTimeEnd)
+	startTime, endTime, err := parseEditTimeRange(input.editTimeStart, input.editTimeEnd)
 	if err != nil {
 		return "", nil, err
 	}
@@ -199,13 +265,27 @@ func canManagePicture(ownerUserID int64, loginUser *model.User) bool {
 	return loginUser.Id == ownerUserID || loginUser.UserRole == "admin"
 }
 
-func loadRequiredAdmin(ctx context.Context, svcCtx *svc.ServiceContext, authorization string) (*model.User, error) {
-	loginUser, err := loadRequiredLoginUser(ctx, svcCtx, authorization)
+func parseRequiredSnowflakeID(raw, field string) (int64, error) {
+	value, err := parseOptionalSnowflakeID(raw, field)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	if loginUser.UserRole != "admin" {
-		return nil, commonresponse.Forbidden("仅管理员可访问")
+	if value <= 0 {
+		return 0, commonresponse.BadRequest(field + " 必须是正整数")
 	}
-	return loginUser, nil
+	return value, nil
+}
+
+func parseOptionalSnowflakeID(raw, field string) (int64, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, nil
+	}
+
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, commonresponse.BadRequest(field + " 必须是正整数")
+	}
+
+	return id, nil
 }

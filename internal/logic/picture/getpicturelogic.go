@@ -12,27 +12,28 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetPictureLogic struct {
+type GetPictureVOLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetPictureLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPictureLogic {
-	return &GetPictureLogic{
+func NewGetPictureVOLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPictureVOLogic {
+	return &GetPictureVOLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetPictureLogic) GetPicture(req *types.PictureGetRequest, authorization string) (*types.PictureResponse, error) {
-	return l.GetPictureVOByID(req.Id.Int64(), authorization)
-}
+func (l *GetPictureVOLogic) GetPictureVO(req *types.GetPictureRequest, authorization string) (*types.PictureResponse, error) {
+	if req == nil {
+		return nil, commonresponse.BadRequest("请求体不能为空")
+	}
 
-func (l *GetPictureLogic) GetPictureVOByID(id int64, authorization string) (*types.PictureResponse, error) {
-	if id <= 0 {
-		return nil, commonresponse.BadRequest("id 必须是正整数")
+	id, err := parseRequiredSnowflakeID(req.Id, "id")
+	if err != nil {
+		return nil, err
 	}
 
 	pictureInfo, err := l.svcCtx.PicturesModel.FindOneActive(l.ctx, id)
@@ -56,35 +57,10 @@ func (l *GetPictureLogic) GetPictureVOByID(id int64, authorization string) (*typ
 	}
 	pictureInfo.ViewCount++
 
-	userMap, err := loadUserSummaryMap(l.ctx, l.svcCtx, []int64{pictureInfo.UserId})
+	userMap, err := loadUserDetailMap(l.ctx, l.svcCtx, []int64{pictureInfo.UserId})
 	if err != nil {
 		return nil, err
 	}
 
-	return buildPictureResponseWithUser(pictureInfo, userMap[pictureInfo.UserId]), nil
-}
-
-func (l *GetPictureLogic) GetPictureRawByID(id int64, authorization string) (*types.PictureResponse, error) {
-	if id <= 0 {
-		return nil, commonresponse.BadRequest("id 必须是正整数")
-	}
-
-	if _, err := loadRequiredAdmin(l.ctx, l.svcCtx, authorization); err != nil {
-		return nil, err
-	}
-
-	pictureInfo, err := l.svcCtx.PicturesModel.FindOneActive(l.ctx, id)
-	if err != nil {
-		if errors.Is(err, model.ErrNotFound) {
-			return nil, commonresponse.NotFound("图片不存在")
-		}
-		return nil, commonresponse.InternalServerError("查询图片失败")
-	}
-
-	userMap, err := loadUserSummaryMap(l.ctx, l.svcCtx, []int64{pictureInfo.UserId})
-	if err != nil {
-		return nil, err
-	}
-
-	return buildPictureResponseWithUser(pictureInfo, userMap[pictureInfo.UserId]), nil
+	return buildPictureResponseWithUser(pictureInfo, userMap[pictureInfo.UserId], req.CompressPictureType)
 }

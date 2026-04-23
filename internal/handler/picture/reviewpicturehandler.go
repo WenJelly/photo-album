@@ -12,7 +12,7 @@ import (
 
 func ReviewPictureHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PictureReviewRequest
+		var req types.ReviewPictureRequest
 		if err := commonrequest.ParseJSON(r, &req); err != nil {
 			response.Response(w, nil, response.BadRequest(err.Error()))
 			return

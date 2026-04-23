@@ -38,8 +38,8 @@ func storePicture(ctx context.Context, svcCtx *svc.ServiceContext, tempPath, ori
 	}
 
 	now := time.Now()
-	objectURL, thumbnailURL := buildStoredPictureURLs(svcCtx.Config.Cos.Host, objectKey, metadata.Size)
-	storedPicture := buildPictureModel(existing, req, loginUser, metadata, originalFilename, objectURL, thumbnailURL, now)
+	objectURL := buildObjectURL(svcCtx.Config.Cos.Host, objectKey)
+	storedPicture := buildPictureModel(existing, req, loginUser, metadata, originalFilename, objectURL, now)
 
 	if existing != nil {
 		storedPicture.Id = existing.Id
@@ -51,7 +51,7 @@ func storePicture(ctx context.Context, svcCtx *svc.ServiceContext, tempPath, ori
 		if err := svcCtx.PicturesModel.Update(ctx, storedPicture); err != nil {
 			return nil, commonresponse.InternalServerError("更新图片失败")
 		}
-		return buildPictureResponseWithUser(storedPicture, buildUserSummary(loginUser)), nil
+		return buildPictureResponseWithUser(storedPicture, buildUserDetail(loginUser), types.CompressPictureType{})
 	}
 
 	result, err := svcCtx.PicturesModel.Insert(ctx, storedPicture)
@@ -64,7 +64,7 @@ func storePicture(ctx context.Context, svcCtx *svc.ServiceContext, tempPath, ori
 		storedPicture.Id = newID
 	}
 
-	return buildPictureResponseWithUser(storedPicture, buildUserSummary(loginUser)), nil
+	return buildPictureResponseWithUser(storedPicture, buildUserDetail(loginUser), types.CompressPictureType{})
 }
 
 func findPictureForWrite(ctx context.Context, svcCtx *svc.ServiceContext, pictureID int64) (*model.Pictures, error) {
@@ -86,7 +86,7 @@ func findPictureForWrite(ctx context.Context, svcCtx *svc.ServiceContext, pictur
 	return pictureInfo, nil
 }
 
-func buildPictureModel(existing *model.Pictures, req pictureWriteRequest, loginUser *model.User, metadata pictureMetadata, originalFilename, objectURL, thumbnailURL string, now time.Time) *model.Pictures {
+func buildPictureModel(existing *model.Pictures, req pictureWriteRequest, loginUser *model.User, metadata pictureMetadata, originalFilename, objectURL string, now time.Time) *model.Pictures {
 	reviewStatus, reviewMessage, reviewerID, reviewTime := reviewStateForUpload(loginUser, now)
 
 	introduction := optionalString(req.Introduction)
@@ -124,7 +124,6 @@ func buildPictureModel(existing *model.Pictures, req pictureWriteRequest, loginU
 		ReviewMessage: reviewMessage,
 		ReviewerId:    reviewerID,
 		ReviewTime:    reviewTime,
-		ThumbnailUrl:  optionalString(thumbnailURL),
 		PicColor:      optionalString(metadata.DominantColor),
 		ViewCount:     0,
 		LikeCount:     0,

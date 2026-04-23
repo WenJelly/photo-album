@@ -5,21 +5,21 @@ import (
 
 	commonrequest "photo-album/internal/common/request"
 	"photo-album/internal/common/response"
-	logicpicture "photo-album/internal/logic/picture"
+	"photo-album/internal/logic/picture"
 	"photo-album/internal/svc"
 	"photo-album/internal/types"
 )
 
-func GetPictureVOHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func GetAdminPictureListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.GetPictureRequest
+		var req types.AdminQueryPictureRequest
 		if err := commonrequest.ParseJSON(r, &req); err != nil {
 			response.Response(w, nil, response.BadRequest(err.Error()))
 			return
 		}
 
-		l := logicpicture.NewGetPictureVOLogic(r.Context(), svcCtx)
-		resp, err := l.GetPictureVO(&req, r.Header.Get("Authorization"))
+		l := picture.NewGetAdminPictureListLogic(r.Context(), svcCtx)
+		resp, err := l.GetAdminPictureList(&req)
 		response.Response(w, resp, err)
 	}
 }

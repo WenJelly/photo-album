@@ -10,16 +10,16 @@ import (
 	"photo-album/internal/types"
 )
 
-func UpdateMyUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func DetailUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.UpdateMyUserRequest
+		var req types.DetailUserRequest
 		if err := commonrequest.ParseJSON(r, &req); err != nil {
 			response.Response(w, nil, response.BadRequest(err.Error()))
 			return
 		}
 
-		l := logicuser.NewUpdateMyUserLogic(r.Context(), svcCtx)
-		resp, err := l.UpdateMyUser(&req, r.Header.Get("Authorization"))
+		l := logicuser.NewDetailUserLogic(r.Context(), svcCtx)
+		resp, err := l.DetailUser(&req, r.Header.Get("Authorization"))
 		response.Response(w, resp, err)
 	}
 }

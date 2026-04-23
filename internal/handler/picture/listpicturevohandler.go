@@ -10,16 +10,16 @@ import (
 	"photo-album/internal/types"
 )
 
-func ListPictureVOHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func GetPictureListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PictureListRequest
+		var req types.QueryPictureRequest
 		if err := commonrequest.ParseJSON(r, &req); err != nil {
 			response.Response(w, nil, response.BadRequest(err.Error()))
 			return
 		}
 
-		l := logicpicture.NewListPictureLogic(r.Context(), svcCtx)
-		resp, err := l.ListPictureVO(&req)
+		l := logicpicture.NewGetPictureListLogic(r.Context(), svcCtx)
+		resp, err := l.GetPictureList(&req)
 		response.Response(w, resp, err)
 	}
 }

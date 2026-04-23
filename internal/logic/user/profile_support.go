@@ -10,7 +10,7 @@ import (
 	"photo-album/model"
 )
 
-func buildUserProfileResponse(userInfo *model.User, pictureStats *model.PictureStats) *types.UserProfileResponse {
+func buildDetailUserResponse(userInfo *model.User, pictureStats *model.PictureStats) *types.DetailUserResponse {
 	if userInfo == nil {
 		return nil
 	}
@@ -18,9 +18,10 @@ func buildUserProfileResponse(userInfo *model.User, pictureStats *model.PictureS
 		pictureStats = &model.PictureStats{}
 	}
 
-	return &types.UserProfileResponse{
-		Id:                   types.NewSnowflakeID(userInfo.Id),
+	return &types.DetailUserResponse{
+		Id:                   formatUserID(userInfo.Id),
 		UserName:             userInfo.UserName,
+		UserEmail:            userInfo.UserEmail,
 		UserAvatar:           userInfo.UserAvatar,
 		UserProfile:          userInfo.UserProfile,
 		UserRole:             userInfo.UserRole,
@@ -42,7 +43,7 @@ func loadUserPictureStats(ctx context.Context, svcCtx *svc.ServiceContext, userI
 	return pictureStats, nil
 }
 
-func loadActiveUserProfile(ctx context.Context, svcCtx *svc.ServiceContext, userID int64) (*types.UserProfileResponse, error) {
+func loadActiveUserDetail(ctx context.Context, svcCtx *svc.ServiceContext, userID int64) (*types.DetailUserResponse, error) {
 	userInfo, err := svcCtx.UserModel.FindOneActive(ctx, userID)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
@@ -56,5 +57,5 @@ func loadActiveUserProfile(ctx context.Context, svcCtx *svc.ServiceContext, user
 		return nil, err
 	}
 
-	return buildUserProfileResponse(userInfo, pictureStats), nil
+	return buildDetailUserResponse(userInfo, pictureStats), nil
 }
