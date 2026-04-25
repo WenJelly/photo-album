@@ -57,6 +57,7 @@ func extractPictureMetadata(filePath, originalFilename string) (pictureMetadata,
 
 		if colorValue, err := extractDominantColor(filePath); err == nil {
 			metadata.DominantColor = colorValue
+			metadata.BlurHash = buildSolidBlurHash(colorValue)
 		}
 	case "webp":
 		width, height, err := extractWebPDimensions(header)

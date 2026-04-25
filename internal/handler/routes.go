@@ -44,6 +44,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
+				Path:    "/picture/list/cursor",
+				Handler: picture.GetPictureCursorListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/user/login",
 				Handler: user.LoginUserHandler(serverCtx),
 			},

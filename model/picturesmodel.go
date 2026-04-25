@@ -27,6 +27,7 @@ type (
 		IncrementViewCount(ctx context.Context, id int64) error
 		CountByWhere(ctx context.Context, whereSQL string, args ...any) (int64, error)
 		FindByWhere(ctx context.Context, whereSQL, orderSQL string, limit, offset int64, args ...any) ([]*Pictures, error)
+		FindByWhereBeforeID(ctx context.Context, whereSQL, orderSQL string, beforeID, limit int64, args ...any) ([]*Pictures, error)
 		CountStatsByUser(ctx context.Context, userID int64) (*PictureStats, error)
 	}
 
@@ -89,6 +90,34 @@ func (m *customPicturesModel) FindByWhere(ctx context.Context, whereSQL, orderSQ
 
 	finalArgs := append([]any{}, args...)
 	finalArgs = append(finalArgs, limit, offset)
+
+	var resp []*Pictures
+	if err := m.QueryRowsNoCacheCtx(ctx, &resp, query, finalArgs...); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (m *customPicturesModel) FindByWhereBeforeID(ctx context.Context, whereSQL, orderSQL string, beforeID, limit int64, args ...any) ([]*Pictures, error) {
+	orderSQL = strings.TrimSpace(orderSQL)
+	if orderSQL == "" {
+		orderSQL = "`id` desc"
+	}
+
+	whereSQL = strings.TrimSpace(whereSQL)
+	finalArgs := append([]any{}, args...)
+	if beforeID > 0 {
+		whereSQL += " and `id` < ?"
+		finalArgs = append(finalArgs, beforeID)
+	}
+	finalArgs = append(finalArgs, limit)
+
+	query := fmt.Sprintf("select %s from %s %s order by %s limit ?",
+		picturesRows, m.table, whereSQL, orderSQL)
 
 	var resp []*Pictures
 	if err := m.QueryRowsNoCacheCtx(ctx, &resp, query, finalArgs...); err != nil {

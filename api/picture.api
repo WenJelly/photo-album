@@ -19,6 +19,10 @@ service PictureCenter {
 	@doc "获取图片列表,返回时根据前端需要压缩类型填写ThumbnailUrl,后端数据库将不再存储该列"
 	@handler getPictureList
 	post /picture/list (QueryPictureRequest) returns (PicturePageResponse)
+
+	@doc "Get public picture cursor list"
+	@handler getPictureCursorList
+	post /picture/list/cursor (CursorQueryPictureRequest) returns (PictureCursorPageResponse)
 }
 
 @server (

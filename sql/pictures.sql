@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `pictures`
     `reviewerId`    bigint(20)            DEFAULT NULL COMMENT '审核人 ID',
     `reviewTime`    datetime              DEFAULT NULL COMMENT '审核时间',
     `picColor`      varchar(16)           DEFAULT NULL COMMENT '图片主色调',
+    `blurHash`      varchar(128)          DEFAULT NULL COMMENT 'BlurHash placeholder',
     `viewCount`     bigint(20)   NOT NULL DEFAULT '0' COMMENT '浏览次数',
     `likeCount`     bigint(20)   NOT NULL DEFAULT '0' COMMENT '点赞次数',
     `isDelete`      tinyint(4)   NOT NULL DEFAULT '0' COMMENT '是否删除',
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS `pictures`
     KEY `idx_category` (`category`),
     KEY `idx_tags` (`tags`),
     KEY `idx_userId` (`userId`),
-    KEY `idx_reviewStatus` (`reviewStatus`)
+    KEY `idx_reviewStatus` (`reviewStatus`),
+    KEY `idx_public_cursor` (`isDelete`, `reviewStatus`, `id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='图片';

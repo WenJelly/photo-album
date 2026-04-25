@@ -38,6 +38,7 @@ type pictureMetadata struct {
 	Scale         float64
 	Format        string
 	DominantColor string
+	BlurHash      string
 }
 
 func ParseTagsInput(raw string) ([]string, error) {

@@ -206,7 +206,7 @@ func buildPictureListWhereInput(input pictureListWhereInput, publicOnly bool) (s
 
 func buildBasePictureListWhere(publicOnly bool) (string, []any) {
 	if publicOnly {
-		return "where `isDelete` = 0 and `reviewStatus` = ?", []any{reviewStatusPass}
+		return "where `isDelete` = 0 and `reviewStatus` = ?", []any{int64(reviewStatusPass)}
 	}
 
 	return "where `isDelete` = 0", nil

@@ -43,6 +43,7 @@ func buildPictureResponseWithUser(pictureInfo *model.Pictures, userDetail types.
 		ReviewTime:    nullTimeValue(pictureInfo.ReviewTime),
 		ThumbnailUrl:  thumbnailURL,
 		PicColor:      nullStringValue(pictureInfo.PicColor),
+		BlurHash:      buildSolidBlurHash(nullStringValue(pictureInfo.PicColor)),
 		ViewCount:     pictureInfo.ViewCount,
 		LikeCount:     pictureInfo.LikeCount,
 	}, nil

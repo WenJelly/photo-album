@@ -50,6 +50,28 @@ type QueryPictureRequest struct {
 	PageSize            int64               `json:"pageSize,optional"`
 }
 
+type CursorQueryPictureRequest struct {
+	Id                  string              `json:"id,optional"`
+	Name                string              `json:"name,optional"`
+	Category            string              `json:"category,optional"`
+	ReviewStatus        int64               `json:"reviewStatus,default=1"`
+	Tags                []string            `json:"tags,optional"`
+	PicSize             int64               `json:"picSize,optional"`
+	PicWidth            int64               `json:"picWidth,optional"`
+	PicHeight           int64               `json:"picHeight,optional"`
+	PicScale            float64             `json:"picScale,optional"`
+	PicFormat           string              `json:"picFormat,optional"`
+	UserId              string              `json:"userId,optional"`
+	ReviewMessage       string              `json:"reviewMessage,optional"`
+	ReviewerId          string              `json:"reviewerId,optional"`
+	EditTimeStart       string              `json:"editTimeStart,optional"`
+	EditTimeEnd         string              `json:"editTimeEnd,optional"`
+	SearchText          string              `json:"searchText,optional"`
+	CompressPictureType CompressPictureType `json:"compressPictureType,optional"`
+	Cursor              string              `json:"cursor,optional"`
+	PageSize            int64               `json:"pageSize,optional"`
+}
+
 type GetPictureRequest struct {
 	Id                  string              `json:"id"`
 	CompressPictureType CompressPictureType `json:"compressPictureType,optional"`
@@ -113,6 +135,7 @@ type PictureResponse struct {
 	ReviewTime    string     `json:"reviewTime"`
 	ThumbnailUrl  string     `json:"thumbnailUrl"`
 	PicColor      string     `json:"picColor"`
+	BlurHash      string     `json:"blurHash"`
 	ViewCount     int64      `json:"viewCount"`
 	LikeCount     int64      `json:"likeCount"`
 }
@@ -122,4 +145,11 @@ type PicturePageResponse struct {
 	PageSize int64             `json:"pageSize"`
 	Total    int64             `json:"total"`
 	List     []PictureResponse `json:"list"`
+}
+
+type PictureCursorPageResponse struct {
+	PageSize   int64             `json:"pageSize"`
+	HasMore    bool              `json:"hasMore"`
+	NextCursor string            `json:"nextCursor"`
+	List       []PictureResponse `json:"list"`
 }
