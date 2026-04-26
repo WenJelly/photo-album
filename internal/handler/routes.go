@@ -7,6 +7,7 @@ import (
 	picture "photo-album/internal/handler/picture"
 	user "photo-album/internal/handler/user"
 	logicpicture "photo-album/internal/logic/picture"
+	logicuser "photo-album/internal/logic/user"
 	middleware "photo-album/internal/middleware"
 	"photo-album/internal/svc"
 
@@ -70,11 +71,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/picture/upload/url",
-				Handler: picture.UploadPictureByUrlHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/picture/vo",
 				Handler: picture.GetPictureVOHandler(serverCtx),
 			},
@@ -91,6 +87,29 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/api"),
+	)
+
+	server.AddRoute(
+		rest.Route{
+			Method:  http.MethodPost,
+			Path:    "/user/avatar/upload",
+			Handler: user.UploadUserAvatarHandler(serverCtx),
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api"),
+		rest.WithMaxBytes(logicuser.MaxAvatarUploadSize),
+		rest.WithTimeout(logicuser.AvatarUploadRequestTimeout),
+	)
+
+	server.AddRoute(
+		rest.Route{
+			Method:  http.MethodPost,
+			Path:    "/picture/upload/url",
+			Handler: picture.UploadPictureByUrlHandler(serverCtx),
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api"),
+		rest.WithTimeout(logicpicture.UploadRequestTimeout),
 	)
 
 	server.AddRoutes(
@@ -114,5 +133,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/api"),
 		rest.WithMaxBytes(logicpicture.MaxFileUploadSize),
+		rest.WithTimeout(logicpicture.UploadRequestTimeout),
 	)
 }

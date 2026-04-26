@@ -97,6 +97,10 @@ service UserCenter {
 	@doc "修改自身资料"
 	@handler UpdateUser
 	post /user/update (UpdateUserRequest) returns (DetailUserResponse)
+
+	@doc "上传头像"
+	@handler UploadUserAvatar
+	post /user/avatar/upload returns (DetailUserResponse)
 }
 
 // 需管理员才能使用的接口

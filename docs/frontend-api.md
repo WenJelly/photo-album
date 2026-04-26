@@ -12,15 +12,16 @@
 2. `POST /api/user/register`
 3. `POST /api/user/get/detail`
 4. `POST /api/user/update`
-5. `POST /api/admin/user/update`
-6. `POST /api/admin/picture/list`
-7. `POST /api/picture/list`
-8. `POST /api/picture/list/cursor`
-9. `POST /api/picture/vo`
-10. `POST /api/picture/upload`
-11. `POST /api/picture/upload/url`
-12. `POST /api/picture/delete`
-13. `POST /api/picture/review`
+5. `POST /api/user/avatar/upload`
+6. `POST /api/admin/user/update`
+7. `POST /api/admin/picture/list`
+8. `POST /api/picture/list`
+9. `POST /api/picture/list/cursor`
+10. `POST /api/picture/vo`
+11. `POST /api/picture/upload`
+12. `POST /api/picture/upload/url`
+13. `POST /api/picture/delete`
+14. `POST /api/picture/review`
 
 ## 2. 全局约定
 
@@ -330,6 +331,7 @@ Content-Type: application/json
 | `/api/user/register` | `POST` | 否 | 否 | 用户注册 |
 | `/api/user/get/detail` | `POST` | 是 | 否 | 获取当前用户或指定用户详情和作品统计 |
 | `/api/user/update` | `POST` | 是 | 否 | 修改自己的资料 |
+| `/api/user/avatar/upload` | `POST` | 是 | 否 | 上传当前登录用户头像文件，并回写 `userAvatar` |
 | `/api/admin/user/update` | `POST` | 是 | 是 | 管理员修改任意用户资料和角色 |
 | `/api/admin/picture/list` | `POST` | 是 | 是 | 管理员获取图片审核列表 |
 | `/api/picture/list` | `POST` | 否 | 否 | 获取公开图片分页列表 |
@@ -629,6 +631,61 @@ Content-Type: application/json
 
 1. 这里不是“按 token 自动识别更新自己”，而是显式要求传 `id`
 2. 前端不要把别人的 `id` 直接传到这里
+
+---
+
+### 5.4.1 用户头像上传
+
+**接口**
+
+```http
+POST /api/user/avatar/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**作用**
+
+上传当前登录用户头像文件，上传成功后后端会同步更新当前用户的 `userAvatar` 字段。
+
+**表单字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `file` | `file` | 是 | 头像图片文件，支持 `jpg`、`jpeg`、`png`、`webp` |
+
+**限制**
+
+1. 需要登录
+2. 文件大小不能超过 `5MB`
+3. 仅更新当前登录用户自己的头像，不需要也不接受额外的 `id`
+
+**成功返回**
+
+返回更新后的 `DetailUserResponse`。
+
+**后端行为**
+
+1. 校验登录态
+2. 校验上传文件类型和大小
+3. 上传到 COS
+4. 将当前用户的 `userAvatar` 更新为新的头像地址
+5. 返回最新用户详情和作品统计
+
+**常见失败**
+
+| 场景 | code | message |
+| --- | --- | --- |
+| 未登录 | `401` | `请先登录` |
+| 缺少 `file` 字段 | `400` | `缺少文件字段 file` |
+| 文件类型不支持 | `400` | `仅支持 jpg、jpeg、png、webp 图片` |
+| 文件超过 5MB | `400` | `头像图片大小不能超过 5MB` |
+| COS 未配置完整 | `500` | `COS 配置不完整，请先配置本地密钥` |
+
+**前端注意**
+
+1. 这个接口负责上传头像文件，不要再把二进制文件发到 `/api/user/update`
+2. 如果前端已经拿到可直接使用的头像 URL，仍然可以继续调用 `/api/user/update` 更新 `userAvatar`
 
 ---
 

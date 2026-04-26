@@ -12,6 +12,8 @@ const (
 	MaxMultipartMemory = 32 << 20
 	// MaxFileUploadSize is the maximum accepted file upload size in bytes.
 	MaxFileUploadSize = 30 << 20
+	// UploadRequestTimeout gives large-picture upload flows enough time for metadata, COS, and DB work.
+	UploadRequestTimeout = 60 * time.Second
 
 	maxURLUploadSize          = 10 << 20
 	compressedImageThreshold  = 2 << 20
